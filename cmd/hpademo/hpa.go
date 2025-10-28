@@ -20,8 +20,8 @@ func runHPADemoSimulation(controls podControls) int {
 	podCPULimit := getSliderValueAsInt(controls.sliderPODCPULimit.slider)
 	podCPURequest := getSliderValueAsInt(controls.sliderPODCPURequest.slider)
 	targetCPUUtilization := getSliderValueAsInt(controls.sliderHPATargetCPUUtilization.slider)
-	minPods := getSliderValueAsInt(controls.sliderHPAMinPods.slider)
-	maxPods := getSliderValueAsInt(controls.sliderHPAMaxPods.slider)
+	minReplicas := getSliderValueAsInt(controls.sliderHPAMinReplicas.slider)
+	maxReplicas := getSliderValueAsInt(controls.sliderHPAMaxReplicas.slider)
 
 	// calculate totalCPULimit
 	totalCPULimit := podCPULimit * currentPods
@@ -52,21 +52,21 @@ func runHPADemoSimulation(controls podControls) int {
 		desiredPodsInt = maxAllowed
 	}
 
-	// clamp DesiredPods between MinPods and MaxPods
-	if desiredPodsInt < minPods {
-		desiredPodsInt = minPods
+	// clamp DesiredPods between min replicas and max replicas
+	if desiredPodsInt < minReplicas {
+		desiredPodsInt = minReplicas
 	}
-	if desiredPodsInt > maxPods {
-		desiredPodsInt = maxPods
+	if desiredPodsInt > maxReplicas {
+		desiredPodsInt = maxReplicas
 	}
 
 	// log inconsistent min vs max
-	if minPods > maxPods {
-		fmt.Printf("Warning: HPA Min Pods (%d) is greater than HPA Max Pods (%d)\n", minPods, maxPods)
+	if minReplicas > maxReplicas {
+		fmt.Printf("WARN: HPA Min Replicas (%d) is greater than HPA Max Replicas (%d)\n", minReplicas, maxReplicas)
 	}
 
-	fmt.Printf("HPA Simulation: currentPods=%d totalCPUUsage=%d podCPURequest=%d cpuMetric=%v targetCPUUtilization=%v => desiredPodsRaw=%d desiredPods=%d\n",
-		currentPods, totalCPUUsage, podCPURequest, cpuMetric, target, desiredPodsIntRaw, desiredPodsInt)
+	fmt.Printf("hpademo %s: currentPods=%d totalCPUUsage=%d podCPURequest=%d cpuMetric=%v targetCPUUtilization=%v => desiredPodsRaw=%d desiredPods=%d\n",
+		version, currentPods, totalCPUUsage, podCPURequest, cpuMetric, target, desiredPodsIntRaw, desiredPodsInt)
 
 	return desiredPodsInt
 }

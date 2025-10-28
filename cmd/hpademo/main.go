@@ -7,6 +7,8 @@ import (
 	"syscall/js"
 )
 
+const version = "0.0.0"
+
 type chart struct {
 	ctx          js.Value
 	pods         []int
@@ -25,9 +27,13 @@ func getSliderValueAsInt(slider js.Value) int {
 }
 
 func main() {
-	fmt.Println("Hello, WebAssembly!!")
-
 	document := js.Global().Get("document")
+
+	hpaDemoVersion := fmt.Sprintf("hpademo %s", version)
+
+	// add version to element with id "version"
+	versionElement := document.Call("getElementById", "version")
+	versionElement.Set("innerHTML", hpaDemoVersion)
 
 	controls := addHTMLControls(document)
 
@@ -86,8 +92,8 @@ type podControls struct {
 	sliderCPUUsage                sliderControl
 	sliderPODCPURequest           sliderControl
 	sliderPODCPULimit             sliderControl
-	sliderHPAMinPods              sliderControl
-	sliderHPAMaxPods              sliderControl
+	sliderHPAMinReplicas          sliderControl
+	sliderHPAMaxReplicas          sliderControl
 	sliderHPATargetCPUUtilization sliderControl
 	sliderNumberOfPods            sliderControl
 }
@@ -126,10 +132,10 @@ func addHTMLControls(document js.Value) podControls {
 	)
 
 	// create a slider for HPA Min Pods
-	controls.sliderHPAMinPods = createSliderWithTextBoxAndLabel(document, container, "HPA Min Pods", minPods, maxPods, 1)
+	controls.sliderHPAMinReplicas = createSliderWithTextBoxAndLabel(document, container, "HPA Min Replicas", minPods, maxPods, 1)
 
 	// create a slider for HPA Max Pods
-	controls.sliderHPAMaxPods = createSliderWithTextBoxAndLabel(document, container, "HPA Max Pods", minPods, maxPods, 10)
+	controls.sliderHPAMaxReplicas = createSliderWithTextBoxAndLabel(document, container, "HPA Max Replicas", minPods, maxPods, 10)
 
 	// create a slider for HPA Target CPU Utilization
 	controls.sliderHPATargetCPUUtilization = createSliderWithTextBoxAndLabel(document, container, "HPA Target CPU Utilization", 1, 200, 80)
@@ -244,9 +250,6 @@ func drawChart(ctx js.Value, c chart) {
 			maxPods = v
 		}
 	}
-
-	lastPodValue := c.pods[len(c.pods)-1]
-	fmt.Printf("maxPods=%d lastPodValue=%d historySize=%d\n", maxPods, lastPodValue, len(c.pods))
 
 	// pod space x ranges from 0 to len(c.pods)
 	// pod space y ranges from 0 to maxPods
