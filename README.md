@@ -11,7 +11,7 @@ Online demo: https://udhos.github.io/hpademo/www/
 # TODO
 
 - [X] scale up limit
-- [ ] scale down 5min anti-flap
+- [ ] scale down anti-flap (5min stabilization window)
 
 # clone
 
