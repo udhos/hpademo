@@ -112,13 +112,13 @@ func addHTMLControls(document js.Value) podControls {
 	var controls podControls
 
 	// create a slider for Total CPU Usage
-	controls.sliderCPUUsage = createSliderWithTextBoxAndLabel(document, container, "Total CPU Usage (mCores):", 10, 100000, 100)
+	controls.sliderCPUUsage = createSliderWithTextBoxAndLabel(document, container, "Total CPU Usage (mCores)", 10, 100000, 100)
 
 	// create a slider for POD CPU Request
-	controls.sliderPODCPURequest = createSliderWithTextBoxAndLabel(document, container, "POD CPU Request (mCores):", 10, 10000, 200)
+	controls.sliderPODCPURequest = createSliderWithTextBoxAndLabel(document, container, "POD CPU Request (mCores)", 10, 10000, 200)
 
 	// create a slider for POD CPU Limit
-	controls.sliderPODCPULimit = createSliderWithTextBoxAndLabel(document, container, "POD CPU Limit (mCores):", 10, 10000, 600)
+	controls.sliderPODCPULimit = createSliderWithTextBoxAndLabel(document, container, "POD CPU Limit (mCores)", 10, 10000, 600)
 
 	const (
 		minPods = 1
@@ -126,26 +126,28 @@ func addHTMLControls(document js.Value) podControls {
 	)
 
 	// create a slider for HPA Min Pods
-	controls.sliderHPAMinPods = createSliderWithTextBoxAndLabel(document, container, "HPA Min Pods:", minPods, maxPods, 1)
+	controls.sliderHPAMinPods = createSliderWithTextBoxAndLabel(document, container, "HPA Min Pods", minPods, maxPods, 1)
 
 	// create a slider for HPA Max Pods
-	controls.sliderHPAMaxPods = createSliderWithTextBoxAndLabel(document, container, "HPA Max Pods:", minPods, maxPods, 10)
+	controls.sliderHPAMaxPods = createSliderWithTextBoxAndLabel(document, container, "HPA Max Pods", minPods, maxPods, 10)
 
 	// create a slider for HPA Target CPU Utilization
-	controls.sliderHPATargetCPUUtilization = createSliderWithTextBoxAndLabel(document, container, "HPA Target CPU Utilization:", 1, 200, 80)
+	controls.sliderHPATargetCPUUtilization = createSliderWithTextBoxAndLabel(document, container, "HPA Target CPU Utilization", 1, 200, 80)
 
 	// create a slider for Number of Pods
-	controls.sliderNumberOfPods = createSliderWithTextBoxAndLabel(document, container, "Number of Pods:", minPods, maxPods, 2)
+	controls.sliderNumberOfPods = createSliderWithTextBoxAndLabel(document, container, "Number of Pods", minPods, maxPods, 2)
 
 	return controls
 }
 
 func createSliderWithTextBoxAndLabel(document js.Value,
 	container js.Value, labelText string, minValue, maxValue, initial int) sliderControl {
-	// create a label
-	label := document.Call("createElement", "label")
-	label.Set("innerHTML", labelText)
-	container.Call("appendChild", label)
+
+	// create a child control container to hold label, slider and text box
+	controlContainer := document.Call("createElement", "div")
+	controlContainer.Get("style").Set("display", "flex")
+	controlContainer.Get("style").Set("alignItems", "center")
+	container.Call("appendChild", controlContainer)
 
 	// create a slider
 	slider := document.Call("createElement", "input")
@@ -153,7 +155,7 @@ func createSliderWithTextBoxAndLabel(document js.Value,
 	slider.Set("min", minValue)
 	slider.Set("max", maxValue)
 	slider.Set("value", initial)
-	container.Call("appendChild", slider)
+	controlContainer.Call("appendChild", slider)
 
 	// create a text box
 	textBox := document.Call("createElement", "input")
@@ -161,7 +163,12 @@ func createSliderWithTextBoxAndLabel(document js.Value,
 	textBox.Set("min", minValue)
 	textBox.Set("max", maxValue)
 	textBox.Set("value", initial)
-	container.Call("appendChild", textBox)
+	controlContainer.Call("appendChild", textBox)
+
+	// create a label
+	label := document.Call("createElement", "label")
+	label.Set("innerHTML", labelText)
+	controlContainer.Call("appendChild", label)
 
 	// synchronize slider and text box
 	slider.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
