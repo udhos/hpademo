@@ -3,6 +3,8 @@ package main
 
 import (
 	"fmt"
+	"math"
+	"strconv"
 	"syscall/js"
 )
 
@@ -13,11 +15,24 @@ type chart struct {
 	canvasHeight int
 }
 
+func getSliderValueAsInt(slider js.Value) int {
+	s := slider.Get("value").String()
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		fmt.Printf("Error converting slider value to int: %v\n", err)
+		return 0
+	}
+	return i
+}
+
 func main() {
 	fmt.Println("Hello, WebAssembly!!")
 
-	// find canvas element
 	document := js.Global().Get("document")
+
+	controls := addHTMLControls(document)
+
+	// find canvas element
 	canvas := document.Call("getElementById", "canvas")
 
 	// get canvas 2d context
@@ -34,12 +49,23 @@ func main() {
 	// call function to draw chart
 	drawChart(ctx, c)
 
+	var lastHPAEvaluation int
+
 	// call updateChart every second
 	js.Global().Call("setInterval", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		// decrease pod value by 1
-		newPodValue := c.pods[len(c.pods)-1] - 1
-		if newPodValue < 0 {
-			newPodValue = 0
+		var newPodValue int
+
+		lastHPAEvaluation++
+		if lastHPAEvaluation >= 15 {
+			// get from HPA simulation
+			lastHPAEvaluation = 0
+			newPodValue = runHPADemoSimulation(controls)
+			// update number of pods slider to reflect HPA decision
+			controls.sliderNumberOfPods.slider.Set("value", newPodValue)
+			controls.sliderNumberOfPods.textBox.Set("value", newPodValue)
+		} else {
+			// get from slider
+			newPodValue = getSliderValueAsInt(controls.sliderNumberOfPods.slider)
 		}
 
 		// update chart data
@@ -55,6 +81,174 @@ func main() {
 
 	fmt.Println("waiting forever...")
 	select {}
+}
+
+// runHPADemoSimulation runs a simulation of HPA behavior based on the provided controls.
+// HPA formula is:
+// DesiredPods = CurrentPods * (cpuMetric / TargetCPUUtilization)
+// where cpuMetric = TotalCPUUsage / TotalCPURequest
+// and TotalCPURequest = PODCPURequest * CurrentPods
+// hence:
+// DesiredPods = TotalCPUUsage / (PODCPURequest * CurrentPods * TargetCPUUtilization)
+// DesiredPods is ceiled to the next integer if not an integer.
+// The result is then clamped between MinPods and MaxPods.
+func runHPADemoSimulation(controls podControls) int {
+	currentPods := getSliderValueAsInt(controls.sliderNumberOfPods.slider)
+	totalCPUUsage := getSliderValueAsInt(controls.sliderCPUUsage.slider)
+	podCPURequest := getSliderValueAsInt(controls.sliderPODCPURequest.slider)
+	targetCPUUtilization := getSliderValueAsInt(controls.sliderHPATargetCPUUtilization.slider)
+	minPods := getSliderValueAsInt(controls.sliderHPAMinPods.slider)
+	maxPods := getSliderValueAsInt(controls.sliderHPAMaxPods.slider)
+
+	// calculate TotalCPURequest
+	totalCPURequest := podCPURequest * currentPods
+
+	// calculate cpuMetric
+	cpuMetric := float64(totalCPUUsage) / float64(totalCPURequest)
+
+	target := float64(targetCPUUtilization) / 100
+
+	// calculate DesiredPods
+	desiredPods := float64(currentPods) * cpuMetric / target
+
+	// ceil DesiredPods to next integer using math.Ceil function
+	desiredPodsIntRaw := int(math.Ceil(desiredPods))
+	desiredPodsInt := desiredPodsIntRaw
+
+	// limit scaling speed according limit function
+	maxAllowed := limitScalingSpeed(currentPods)
+	if desiredPodsInt > maxAllowed {
+		desiredPodsInt = maxAllowed
+	}
+
+	// clamp DesiredPods between MinPods and MaxPods
+	if desiredPodsInt < minPods {
+		desiredPodsInt = minPods
+	}
+	if desiredPodsInt > maxPods {
+		desiredPodsInt = maxPods
+	}
+
+	// log inconsistent min vs max
+	if minPods > maxPods {
+		fmt.Printf("Warning: HPA Min Pods (%d) is greater than HPA Max Pods (%d)\n", minPods, maxPods)
+	}
+
+	fmt.Printf("HPA Simulation: currentPods=%d totalCPUUsage=%d podCPURequest=%d cpuMetric=%v targetCPUUtilization=%v => desiredPodsRaw=%d desiredPods=%d\n",
+		currentPods, totalCPUUsage, podCPURequest, cpuMetric, target, desiredPodsIntRaw, desiredPodsInt)
+
+	return desiredPodsInt
+}
+
+// limitScalingSpeed limits the scaling speed of the HPA.
+//
+// see:
+//
+// https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/podautoscaler/horizontal.go
+//
+//	func calculateScaleUpLimit(currentReplicas int32) int32 {
+//		return int32(math.Max(scaleUpLimitFactor*float64(currentReplicas), scaleUpLimitMinimum)) // return max(2*replicas, 4)
+//	}
+func limitScalingSpeed(currentPods int) int {
+	return max(2*currentPods, 4)
+}
+
+type podControls struct {
+	sliderCPUUsage                sliderControl
+	sliderPODCPURequest           sliderControl
+	sliderPODCPULimit             sliderControl
+	sliderHPAMinPods              sliderControl
+	sliderHPAMaxPods              sliderControl
+	sliderHPATargetCPUUtilization sliderControl
+	sliderNumberOfPods            sliderControl
+}
+
+type sliderControl struct {
+	slider  js.Value
+	textBox js.Value
+}
+
+func addHTMLControls(document js.Value) podControls {
+
+	// retrieve the container "controls" from the HTML
+	uiControls := document.Call("getElementById", "controls")
+
+	// create an element for stacking slider controls vertically
+	container := document.Call("createElement", "div")
+	container.Get("style").Set("display", "flex")
+	container.Get("style").Set("flexDirection", "column")
+	container.Get("style").Set("gap", "10px")
+	uiControls.Call("appendChild", container)
+
+	var controls podControls
+
+	// create a slider for Total CPU Usage
+	controls.sliderCPUUsage = createSliderWithTextBoxAndLabel(document, container, "Total CPU Usage (mCores):", 10, 100000, 100)
+
+	// create a slider for POD CPU Request
+	controls.sliderPODCPURequest = createSliderWithTextBoxAndLabel(document, container, "POD CPU Request (mCores):", 10, 10000, 200)
+
+	// create a slider for POD CPU Limit
+	controls.sliderPODCPULimit = createSliderWithTextBoxAndLabel(document, container, "POD CPU Limit (mCores):", 10, 10000, 600)
+
+	const (
+		minPods = 1
+		maxPods = 1000
+	)
+
+	// create a slider for HPA Min Pods
+	controls.sliderHPAMinPods = createSliderWithTextBoxAndLabel(document, container, "HPA Min Pods:", minPods, maxPods, 1)
+
+	// create a slider for HPA Max Pods
+	controls.sliderHPAMaxPods = createSliderWithTextBoxAndLabel(document, container, "HPA Max Pods:", minPods, maxPods, 10)
+
+	// create a slider for HPA Target CPU Utilization
+	controls.sliderHPATargetCPUUtilization = createSliderWithTextBoxAndLabel(document, container, "HPA Target CPU Utilization:", 1, 200, 80)
+
+	// create a slider for Number of Pods
+	controls.sliderNumberOfPods = createSliderWithTextBoxAndLabel(document, container, "Number of Pods:", minPods, maxPods, 2)
+
+	return controls
+}
+
+// createSliderWithTextBoxAndLabel should receive the container element to append to
+func createSliderWithTextBoxAndLabel(document js.Value,
+	container js.Value, labelText string, minValue, maxValue, initial int) sliderControl {
+	// create a label
+	label := document.Call("createElement", "label")
+	label.Set("innerHTML", labelText)
+	container.Call("appendChild", label)
+
+	// create a slider
+	slider := document.Call("createElement", "input")
+	slider.Set("type", "range")
+	slider.Set("min", minValue)
+	slider.Set("max", maxValue)
+	slider.Set("value", initial)
+	container.Call("appendChild", slider)
+
+	// create a text box
+	textBox := document.Call("createElement", "input")
+	textBox.Set("type", "number")
+	textBox.Set("min", minValue)
+	textBox.Set("max", maxValue)
+	textBox.Set("value", initial)
+	container.Call("appendChild", textBox)
+
+	// synchronize slider and text box
+	slider.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		value := slider.Get("value").String()
+		textBox.Set("value", value)
+		return nil
+	}))
+
+	textBox.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		value := textBox.Get("value").String()
+		slider.Set("value", value)
+		return nil
+	}))
+
+	return sliderControl{slider: slider, textBox: textBox}
 }
 
 func updateChart(c *chart, newPodValue int) {
@@ -75,18 +269,25 @@ func newChart(ctx js.Value, canvasWidth, canvasHeight, historySize int) chart {
 		canvasHeight: canvasHeight,
 	}
 
-	// fill pods
+	// fill with ones
 	for i := 0; i < historySize; i++ {
-		// for every point, shift left and add a new value
-
-		// loop to shift left
-		for j := 0; j < len(c.pods)-1; j++ {
-			c.pods[j] = c.pods[j+1]
-		}
-
-		// push a increasing value
-		c.pods[len(c.pods)-1] = i
+		c.pods[i] = 1
 	}
+
+	/*
+		// fill pods
+		for i := 0; i < historySize; i++ {
+			// for every point, shift left and add a new value
+
+			// loop to shift left
+			for j := 0; j < len(c.pods)-1; j++ {
+				c.pods[j] = c.pods[j+1]
+			}
+
+			// push a increasing value
+			c.pods[len(c.pods)-1] = i
+		}
+	*/
 
 	return c
 }
