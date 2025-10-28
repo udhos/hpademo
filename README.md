@@ -1,5 +1,7 @@
 # hpademo
 
+`hpademo` is a simple demo for Kubernetes Horizontal Pod Autoscaler (HPA), written in Go and compiled to WebAssembly (WASM) in order to run in a web browser.
+
 Online demo: https://udhos.github.io/hpademo/www/
 
 # TODO
