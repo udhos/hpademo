@@ -2,6 +2,11 @@
 
 Online demo: https://udhos.github.io/hpademo/www/
 
+# TODO
+
+- [X] scale up limit
+- [ ] scale down 5min anti-flap
+
 # clone
 
 ```bash
