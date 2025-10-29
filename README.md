@@ -15,6 +15,15 @@ git clone https://github.com/udhos/hpademo
 cd hpademo
 ```
 
+# editing
+
+Set `GOOS=js GOARCH=wasm` before starting your editor/IDE.
+
+```bash
+export GOOS=js GOARCH=wasm
+code .
+```
+
 # test
 
 ```bash
