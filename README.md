@@ -8,12 +8,6 @@
 
 Online demo: https://udhos.github.io/hpademo/www/
 
-# TODO
-
-- [X] scale up limit
-- [X] scale tolerance
-- [ ] scale down anti-flap (5min stabilization window)
-
 # clone
 
 ```bash
