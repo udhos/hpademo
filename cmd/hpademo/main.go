@@ -151,9 +151,31 @@ func createSliderWithTextBoxAndLabel(document js.Value,
 
 	// create a child control container to hold label, slider and text box
 	controlContainer := document.Call("createElement", "div")
+	controlContainer.Set("className", "control-item") // ADIÇÃO: classe para estilização
 	controlContainer.Get("style").Set("display", "flex")
-	controlContainer.Get("style").Set("alignItems", "center")
+	controlContainer.Get("style").Set("flexDirection", "column")
+	controlContainer.Get("style").Set("gap", "5px")
+	controlContainer.Get("style").Set("padding", "10px")
+	controlContainer.Get("style").Set("borderRadius", "8px")
+	controlContainer.Get("style").Set("backgroundColor", "#f8f9fa")
+	controlContainer.Get("style").Set("transition", "all 0.3s") // ADIÇÃO: transição suave
 	container.Call("appendChild", controlContainer)
+
+	// create a label (MOVIDO PARA CIMA)
+	label := document.Call("createElement", "label")
+	label.Set("innerHTML", labelText)
+	label.Get("style").Set("fontSize", "12px")
+	label.Get("style").Set("fontWeight", "600")
+	label.Get("style").Set("color", "#374151")
+	label.Get("style").Set("marginBottom", "4px")
+	controlContainer.Call("appendChild", label)
+
+	// create a container for slider and textbox in the same row
+	inputRow := document.Call("createElement", "div")
+	inputRow.Get("style").Set("display", "flex")
+	inputRow.Get("style").Set("gap", "8px")
+	inputRow.Get("style").Set("alignItems", "center")
+	controlContainer.Call("appendChild", inputRow)
 
 	// create a slider
 	slider := document.Call("createElement", "input")
@@ -161,7 +183,9 @@ func createSliderWithTextBoxAndLabel(document js.Value,
 	slider.Set("min", minValue)
 	slider.Set("max", maxValue)
 	slider.Set("value", initial)
-	controlContainer.Call("appendChild", slider)
+	slider.Get("style").Set("flex", "1")
+	slider.Get("style").Set("cursor", "pointer")
+	inputRow.Call("appendChild", slider)
 
 	// create a text box
 	textBox := document.Call("createElement", "input")
@@ -169,12 +193,13 @@ func createSliderWithTextBoxAndLabel(document js.Value,
 	textBox.Set("min", minValue)
 	textBox.Set("max", maxValue)
 	textBox.Set("value", initial)
-	controlContainer.Call("appendChild", textBox)
-
-	// create a label
-	label := document.Call("createElement", "label")
-	label.Set("innerHTML", labelText)
-	controlContainer.Call("appendChild", label)
+	textBox.Get("style").Set("width", "70px")
+	textBox.Get("style").Set("padding", "4px 8px")
+	textBox.Get("style").Set("border", "1px solid #d1d5db")
+	textBox.Get("style").Set("borderRadius", "4px")
+	textBox.Get("style").Set("fontSize", "14px")
+	textBox.Get("style").Set("backgroundColor", "white") // ADIÇÃO: fundo branco
+	inputRow.Call("appendChild", textBox)
 
 	// synchronize slider and text box
 	slider.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
