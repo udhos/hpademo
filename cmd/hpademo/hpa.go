@@ -39,12 +39,22 @@ func runHPADemoSimulation(controls podControls) int {
 
 	target := float64(targetCPUUtilization) / 100
 
-	// calculate DesiredPods
-	desiredPods := float64(currentPods) * cpuMetric / target
+	// calculate currentMetric / desiredMetric
+	usageRatio := cpuMetric / target
 
-	// ceil DesiredPods to next integer using math.Ceil function
-	desiredPodsIntRaw := int(math.Ceil(desiredPods))
-	desiredPodsInt := desiredPodsIntRaw
+	var desiredPodsInt int
+
+	// do not scale if within tolerance (cpuMetric close enough to target).
+	if withinTolerance(usageRatio) {
+		fmt.Printf("hpademo %s: within tolerance (cpuMetric=%v target=%v usageRatio=%v tolerance=%v ratioRange=%v..%v), not scaling\n", version, cpuMetric, target, usageRatio, scaleTolerance, (1.0 - scaleTolerance), (1.0 + scaleTolerance))
+		desiredPodsInt = currentPods
+	} else {
+		// calculate DesiredPods
+		desiredPods := float64(currentPods) * usageRatio
+
+		// ceil DesiredPods to next integer using math.Ceil function
+		desiredPodsInt = int(math.Ceil(desiredPods))
+	}
 
 	// limit scaling speed according limit function
 	maxAllowed := limitScalingSpeed(currentPods)
@@ -65,10 +75,21 @@ func runHPADemoSimulation(controls podControls) int {
 		fmt.Printf("WARN: HPA Min Replicas (%d) is greater than HPA Max Replicas (%d)\n", minReplicas, maxReplicas)
 	}
 
-	fmt.Printf("hpademo %s: currentPods=%d totalCPUUsage=%d podCPURequest=%d cpuMetric=%v targetCPUUtilization=%v => desiredPodsRaw=%d desiredPods=%d\n",
-		version, currentPods, totalCPUUsage, podCPURequest, cpuMetric, target, desiredPodsIntRaw, desiredPodsInt)
+	fmt.Printf("hpademo %s: currentPods=%d totalCPUUsage=%d podCPURequest=%d cpuMetric=%v targetCPUUtilization=%v => desiredPods=%d\n",
+		version, currentPods, totalCPUUsage, podCPURequest, cpuMetric, target, desiredPodsInt)
 
 	return desiredPodsInt
+}
+
+const scaleTolerance = 0.1 // 10% for both up and down
+
+// withinTolerance returns true if the usageRatio is within the scale tolerance.
+//
+// usageRatio = cpuMetric / target
+//
+// for tolerance=10%, the usageRatio must be between 0.9 and 1.1 to be considered within tolerance.
+func withinTolerance(usageRatio float64) bool {
+	return usageRatio >= (1.0-scaleTolerance) && usageRatio <= (1.0+scaleTolerance)
 }
 
 // limitScalingSpeed limits the scaling speed of the HPA.

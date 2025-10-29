@@ -7,7 +7,7 @@ import (
 	"syscall/js"
 )
 
-const version = "0.0.0"
+const version = "0.0.1"
 
 type chart struct {
 	ctx          js.Value
@@ -230,7 +230,7 @@ func updateChart(c *chart, newPodValue int) {
 func newChart(ctx js.Value, canvasWidth, canvasHeight, historySize int) chart {
 	c := chart{
 		ctx:          ctx,
-		pods:         make([]int, historySize, historySize),
+		pods:         make([]int, historySize),
 		canvasWidth:  canvasWidth,
 		canvasHeight: canvasHeight,
 	}
