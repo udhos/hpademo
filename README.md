@@ -32,3 +32,5 @@ cd hpademo
 ```bash
 ./run-serve-www.sh
 ```
+
+Then open your web browser at http://localhost:8080
