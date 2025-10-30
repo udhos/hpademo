@@ -1,10 +1,10 @@
 /* ========================================
-   TEMA E CORES GLOBAIS
+   THEME AND GLOBAL COLORS
    ======================================== */
 
-/* Container customizado com largura maior */
+/* Custom container with larger width */
 .container-custom {
-    max-width: 1600px; /* Aumentado de ~1280px (max-w-7xl) para 1600px */
+    max-width: 1600px; /* Increased from ~1280px (max-w-7xl) to 1600px */
     width: 100%;
     padding-left: 1rem;
     padding-right: 1rem;
@@ -17,13 +17,13 @@
     }
 }
 
-/* Transição suave entre temas */
+/* Smooth transition between themes */
 body {
     transition: background-color 0.3s, color 0.3s;
 }
 
 /* ========================================
-   TEMA CLARO
+   LIGHT THEME
    ======================================== */
 
 body:not(.dark-mode) {
@@ -46,12 +46,28 @@ body:not(.dark-mode) .border-purple-500 {
     border-color: #64748b !important;
 }
 
+body:not(.dark-mode) .bg-blue-50 {
+    background-color: #1e3a5f !important;
+}
+
+body:not(.dark-mode) .bg-blue-50 .font-semibold {
+    color: #ffffff !important;
+}
+
+body:not(.dark-mode) .text-blue-600 {
+    color: #93c5fd !important;
+}
+
+body:not(.dark-mode) .text-blue-800:hover {
+    color: #bfdbfe !important;
+}
+
 body:not(.dark-mode) #darkModeToggle {
     background: #475569 !important;
 }
 
 /* ========================================
-   TEMA ESCURO
+   DARK THEME
    ======================================== */
 
 body.dark-mode {
@@ -104,7 +120,7 @@ body.dark-mode #canvas {
 }
 
 /* ========================================
-   BOTÃO DARK MODE TOGGLE
+   DARK MODE TOGGLE BUTTON
    ======================================== */
 
 #darkModeToggle {
@@ -133,8 +149,42 @@ body.dark-mode #darkModeToggle {
 }
 
 /* ========================================
-   CONTAINER DE CONTROLES
+   CONTROLS CONTAINER
    ======================================== */
+
+/* Canvas Panel */
+.canvas-panel {
+    background: #ffffff;
+}
+
+body:not(.dark-mode) .canvas-panel {
+    background: #f8fafc;
+}
+
+body.dark-mode .canvas-panel {
+    background: #1f2937;
+}
+
+/* Controls Panel */
+.controls-panel {
+    background: #f1f5f9;
+}
+
+body:not(.dark-mode) .controls-panel {
+    background: #cbd5e1;
+}
+
+body.dark-mode .controls-panel {
+    background: #4b5563;
+}
+
+body:not(.dark-mode) .controls-panel h3 {
+    color: #1e293b;
+}
+
+body.dark-mode .controls-panel h3 {
+    color: #f3f4f6;
+}
 
 #controls {
     display: flex;
@@ -143,10 +193,10 @@ body.dark-mode #darkModeToggle {
 }
 
 /* ========================================
-   SEÇÕES (INPUT E CONFIG)
+   SECTIONS (INPUT AND CONFIG)
    ======================================== */
 
-/* Seção de Input (System Load Simulation) */
+/* Input Section (System Load Simulation) */
 .input-section {
     margin-bottom: 24px;
     padding: 16px;
@@ -160,7 +210,7 @@ body.dark-mode #darkModeToggle {
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Seção de Configuração (HPA Configuration) */
+/* Configuration Section (HPA Configuration) */
 .config-section {
     padding: 16px;
     background: #f9fafb;
@@ -171,7 +221,7 @@ body.dark-mode .config-section {
     background: #1f2937;
 }
 
-/* Títulos de Seção */
+/* Section Titles */
 .section-title {
     font-size: 14px;
     font-weight: 700;
@@ -188,10 +238,10 @@ body.dark-mode .input-section .section-title {
 }
 
 /* ========================================
-   CONTROLES (ITEMS E INPUTS)
+   CONTROLS (ITEMS AND INPUTS)
    ======================================== */
 
-/* Item de Controle Padrão */
+/* Default Control Item */
 .control-item {
     display: flex;
     flex-direction: column;
@@ -210,7 +260,7 @@ body.dark-mode .input-section .section-title {
     margin-bottom: 4px;
 }
 
-/* Row com Slider e Number Input */
+/* Row with Slider and Number Input */
 .input-row {
     display: flex;
     gap: 8px;
@@ -232,7 +282,7 @@ body.dark-mode .input-section .section-title {
     background-color: white;
 }
 
-/* Dark Mode - Controles Padrão */
+/* Dark Mode - Default Controls */
 body.dark-mode .control-item {
     background-color: #374151 !important;
 }
@@ -256,7 +306,7 @@ body.dark-mode .control-item input[type="range"] {
     accent-color: #a78bfa;
 }
 
-/* Linha divisória entre controles */
+/* Divider line between controls */
 .control-divider {
     border: none;
     height: 2px;
@@ -269,7 +319,7 @@ body.dark-mode .control-divider {
 }
 
 /* ========================================
-   CONTROLE DE INPUT (System Load)
+   INPUT CONTROL (System Load)
    ======================================== */
 
 .control-input label {
@@ -301,7 +351,7 @@ body.dark-mode .control-divider {
 }
 
 /* ========================================
-   CONTROLE DE OUTPUT (Auto-managed)
+   OUTPUT CONTROL (Auto-managed)
    ======================================== */
 
 .control-output {
@@ -337,7 +387,7 @@ body.dark-mode .control-divider {
     box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
 }
 
-/* Dark Mode - Controle de Output */
+/* Dark Mode - Output Control */
 body.dark-mode .control-output {
     background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%);
 }
