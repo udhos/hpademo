@@ -1,0 +1,349 @@
+/* ========================================
+   TEMA E CORES GLOBAIS
+   ======================================== */
+
+/* Container customizado com largura maior */
+.container-custom {
+    max-width: 1600px; /* Aumentado de ~1280px (max-w-7xl) para 1600px */
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+@media (min-width: 1024px) {
+    .container-custom {
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+}
+
+/* Transição suave entre temas */
+body {
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* ========================================
+   TEMA CLARO
+   ======================================== */
+
+body:not(.dark-mode) {
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%) !important;
+}
+
+body:not(.dark-mode) .text-purple-600 {
+    color: #334155 !important;
+}
+
+body:not(.dark-mode) .bg-purple-100 {
+    background-color: #f1f5f9 !important;
+}
+
+body:not(.dark-mode) .text-purple-800 {
+    color: #1e293b !important;
+}
+
+body:not(.dark-mode) .border-purple-500 {
+    border-color: #64748b !important;
+}
+
+body:not(.dark-mode) #darkModeToggle {
+    background: #475569 !important;
+}
+
+/* ========================================
+   TEMA ESCURO
+   ======================================== */
+
+body.dark-mode {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+}
+
+body.dark-mode .bg-white {
+    background-color: #2d2d44 !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-mode .text-purple-600 {
+    color: #a78bfa !important;
+}
+
+body.dark-mode .text-gray-600 {
+    color: #d1d5db !important;
+}
+
+body.dark-mode .bg-blue-50 {
+    background-color: #1e3a5f !important;
+}
+
+body.dark-mode .border-blue-500 {
+    border-color: #60a5fa !important;
+}
+
+body.dark-mode .text-blue-600 {
+    color: #60a5fa !important;
+}
+
+body.dark-mode .text-blue-800:hover {
+    color: #93c5fd !important;
+}
+
+body.dark-mode .bg-gray-50 {
+    background-color: #374151 !important;
+}
+
+body.dark-mode .text-gray-700 {
+    color: #e5e7eb !important;
+}
+
+body.dark-mode .border-purple-500 {
+    border-color: #a78bfa !important;
+}
+
+body.dark-mode #canvas {
+    filter: invert(1) hue-rotate(180deg);
+}
+
+/* ========================================
+   BOTÃO DARK MODE TOGGLE
+   ======================================== */
+
+#darkModeToggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
+    z-index: 1000;
+}
+
+#darkModeToggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+body.dark-mode #darkModeToggle {
+    background: #a78bfa;
+}
+
+/* ========================================
+   CONTAINER DE CONTROLES
+   ======================================== */
+
+#controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* ========================================
+   SEÇÕES (INPUT E CONFIG)
+   ======================================== */
+
+/* Seção de Input (System Load Simulation) */
+.input-section {
+    margin-bottom: 24px;
+    padding: 16px;
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(100, 116, 139, 0.3);
+}
+
+.input-section .section-title {
+    color: #ffffff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Seção de Configuração (HPA Configuration) */
+.config-section {
+    padding: 16px;
+    background: #f9fafb;
+    border-radius: 12px;
+}
+
+body.dark-mode .config-section {
+    background: #1f2937;
+}
+
+/* Títulos de Seção */
+.section-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #374151;
+}
+
+body.dark-mode .section-title {
+    color: #e5e7eb;
+}
+
+body.dark-mode .input-section .section-title {
+    color: #ffffff;
+}
+
+/* ========================================
+   CONTROLES (ITEMS E INPUTS)
+   ======================================== */
+
+/* Item de Controle Padrão */
+.control-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    transition: all 0.3s;
+}
+
+.control-item label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 4px;
+}
+
+/* Row com Slider e Number Input */
+.input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.input-row input[type="range"] {
+    flex: 3;
+    cursor: pointer;
+}
+
+.input-row input[type="number"] {
+    flex: 2;
+    min-width: 80px;
+    padding: 6px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: white;
+}
+
+/* Dark Mode - Controles Padrão */
+body.dark-mode .control-item {
+    background-color: #374151 !important;
+}
+
+body.dark-mode .control-item label {
+    color: #e5e7eb !important;
+}
+
+body.dark-mode .control-item input[type="number"] {
+    background-color: #1f2937 !important;
+    color: #e5e7eb !important;
+    border-color: #4b5563 !important;
+}
+
+body.dark-mode .control-item input[type="number"]:focus {
+    outline: 2px solid #a78bfa !important;
+    outline-offset: 2px;
+}
+
+body.dark-mode .control-item input[type="range"] {
+    accent-color: #a78bfa;
+}
+
+/* Linha divisória entre controles */
+.control-divider {
+    border: none;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, #cbd5e1 50%, transparent 100%);
+    margin: 20px 0;
+}
+
+body.dark-mode .control-divider {
+    background: linear-gradient(90deg, transparent 0%, #475569 50%, transparent 100%);
+}
+
+/* ========================================
+   CONTROLE DE INPUT (System Load)
+   ======================================== */
+
+.control-input label {
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.control-input input[type="range"] {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.control-input input[type="range"]::-webkit-slider-thumb {
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.control-input input[type="range"]::-moz-range-thumb {
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.control-input input[type="number"] {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 2px solid rgba(255, 255, 255, 0.5) !important;
+    font-weight: 600;
+    color: #475569 !important;
+}
+
+/* ========================================
+   CONTROLE DE OUTPUT (Auto-managed)
+   ======================================== */
+
+.control-output {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.05) 0%, transparent 100%);
+    border-left: 3px solid #3b82f6;
+    padding-left: 12px;
+}
+
+.control-output input[type="range"] {
+    opacity: 0.7;
+    cursor: pointer;
+}
+
+.control-output input[type="number"] {
+    background: #eff6ff !important;
+    border: 2px solid #3b82f6 !important;
+    color: #1e40af !important;
+    font-weight: 600;
+    cursor: text;
+}
+
+/* Badge "AUTO" */
+.badge-auto {
+    display: inline-block;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+/* Dark Mode - Controle de Output */
+body.dark-mode .control-output {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%);
+}
+
+body.dark-mode .control-output input[type="number"] {
+    background: #1e3a5f !important;
+    border-color: #3b82f6 !important;
+    color: #93c5fd !important;
+}

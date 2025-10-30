@@ -1,217 +1,164 @@
 <html>
-    <head>
-        <meta charset="utf-8"/>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script src="wasm_exec.js"></script>
-        <script>
-            const go = new Go();
-            WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
-                go.run(result.instance);
-            });
 
-            // Dark mode toggle
-            function toggleDarkMode() {
-                document.body.classList.toggle('dark-mode');
-                const isDark = document.body.classList.contains('dark-mode');
-                localStorage.setItem('darkMode', isDark);
-                updateDarkModeButton(isDark);
-            }
+<head>
+    <meta charset="utf-8" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/css/app.css">
+    <script src="wasm_exec.js"></script>
+    <script>
+        const go = new Go();
+        WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
+            go.run(result.instance);
+        });
+    </script>
+    <script src="assets/js/app.js"></script>
+</head>
 
-            function updateDarkModeButton(isDark) {
-                const btn = document.getElementById('darkModeToggle');
-                btn.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
-            }
+<body class="bg-gradient-to-br from-purple-600 to-indigo-700 min-h-screen p-8">
+    <button id="darkModeToggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
 
-            // Carregar preferência salva
-            window.addEventListener('DOMContentLoaded', () => {
-                // MUDANÇA: Se não houver preferência salva, usa dark mode como padrão
-                const savedMode = localStorage.getItem('darkMode');
-                const isDark = savedMode === null ? true : savedMode === 'true';
-                
-                if (isDark) {
-                    document.body.classList.add('dark-mode');
-                }
-                updateDarkModeButton(isDark);
-            });
-        </script>
-        <style>
-            /* Tema claro - Cinza Neutro */
-            body {
-                transition: background-color 0.3s, color 0.3s;
-            }
-
-            body:not(.dark-mode) {
-                background: linear-gradient(135deg, #64748b 0%, #475569 100%) !important;
-            }
-
-            body:not(.dark-mode) .text-purple-600 {
-                color: #334155 !important;
-            }
-
-            body:not(.dark-mode) .bg-purple-100 {
-                background-color: #f1f5f9 !important;
-            }
-
-            body:not(.dark-mode) .text-purple-800 {
-                color: #1e293b !important;
-            }
-
-            body:not(.dark-mode) .border-purple-500 {
-                border-color: #64748b !important;
-            }
-
-            body:not(.dark-mode) #darkModeToggle {
-                background: #475569 !important;
-            }
-
-            /* Tema escuro */
-            body.dark-mode {
-                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
-            }
-
-            body.dark-mode .bg-white {
-                background-color: #2d2d44 !important;
-                color: #e0e0e0 !important;
-            }
-
-            body.dark-mode .text-purple-600 {
-                color: #a78bfa !important;
-            }
-
-            body.dark-mode .text-gray-600 {
-                color: #d1d5db !important;
-            }
-
-            body.dark-mode .bg-blue-50 {
-                background-color: #1e3a5f !important;
-            }
-
-            body.dark-mode .border-blue-500 {
-                border-color: #60a5fa !important;
-            }
-
-            body.dark-mode .text-blue-600 {
-                color: #60a5fa !important;
-            }
-
-            body.dark-mode .text-blue-800:hover {
-                color: #93c5fd !important;
-            }
-
-            body.dark-mode .bg-gray-50 {
-                background-color: #374151 !important;
-            }
-
-            body.dark-mode .text-gray-700 {
-                color: #e5e7eb !important;
-            }
-
-            body.dark-mode .border-purple-500 {
-                border-color: #a78bfa !important;
-            }
-
-            body.dark-mode #canvas {
-                filter: invert(1) hue-rotate(180deg);
-            }
-
-            /* ADIÇÃO: Estilos para controles em dark mode */
-            body.dark-mode .control-item {
-                background-color: #374151 !important;
-            }
-
-            body.dark-mode .control-item label {
-                color: #e5e7eb !important;
-            }
-
-            body.dark-mode .control-item input[type="number"] {
-                background-color: #1f2937 !important;
-                color: #e5e7eb !important;
-                border-color: #4b5563 !important;
-            }
-
-            body.dark-mode .control-item input[type="number"]:focus {
-                outline: 2px solid #a78bfa !important;
-                outline-offset: 2px;
-            }
-
-            body.dark-mode .control-item input[type="range"] {
-                accent-color: #a78bfa;
-            }
-
-            #darkModeToggle {
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 10px 20px;
-                background: #667eea;
-                color: white;
-                border: none;
-                border-radius: 20px;
-                cursor: pointer;
-                font-weight: 600;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                transition: all 0.3s;
-                z-index: 1000;
-            }
-
-            #darkModeToggle:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-            }
-
-            body.dark-mode #darkModeToggle {
-                background: #a78bfa;
-            }
-        </style>
-    </head>
-    <body class="bg-gradient-to-br from-purple-600 to-indigo-700 min-h-screen p-8">
-        <button id="darkModeToggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
-        
-        <div class="max-w-7xl mx-auto">
-            <div class="bg-white rounded-2xl shadow-2xl p-8">
-                <!-- Header -->
-                <div class="text-center mb-8">
-                    <div id="version" class="inline-block bg-purple-100 text-purple-800 px-4 py-1 rounded-full text-sm font-semibold mb-4"></div>
-                    <h1 class="text-5xl font-bold text-purple-600 mb-4">🚀 HPA Demo</h1>
-                    <p class="text-lg text-gray-600 max-w-3xl mx-auto">
-                        <span class="font-bold">hpademo</span> is a simple demo for Kubernetes Horizontal Pod Autoscaler (HPA), 
-                        written in Go and compiled to WebAssembly.
-                    </p>
+    <div class="container-custom mx-auto">
+        <div class="bg-white rounded-2xl shadow-2xl p-8">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <div id="version"
+                    class="inline-block bg-purple-100 text-purple-800 px-4 py-1 rounded-full text-sm font-semibold mb-4">
                 </div>
+                <h1 class="text-5xl font-bold text-purple-600 mb-4">🚀 HPA Demo</h1>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+                    <span class="font-bold">hpademo</span> is a simple demo for Kubernetes Horizontal Pod Autoscaler
+                    (HPA),
+                    written in Go and compiled to WebAssembly.
+                </p>
+            </div>
 
-                <!-- Links -->
-                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 rounded">
-                    <div class="flex flex-col md:flex-row justify-center gap-4 text-center">
-                        <div>
-                            <span class="font-semibold">🌐 Online:</span>
-                            <a href="https://udhos.github.io/hpademo/www" class="text-blue-600 hover:text-blue-800 hover:underline ml-2">
-                                udhos.github.io/hpademo/www
-                            </a>
-                        </div>
-                        <div>
-                            <span class="font-semibold">💻 Source:</span>
-                            <a href="https://github.com/udhos/hpademo" class="text-blue-600 hover:text-blue-800 hover:underline ml-2">
-                                github.com/udhos/hpademo
-                            </a>
-                        </div>
+            <!-- Links -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 rounded">
+                <div class="flex flex-col md:flex-row justify-center gap-4 text-center">
+                    <div>
+                        <span class="font-semibold">🌐 Online:</span>
+                        <a href="https://udhos.github.io/hpademo/www"
+                            class="text-blue-600 hover:text-blue-800 hover:underline ml-2">
+                            udhos.github.io/hpademo/www
+                        </a>
+                    </div>
+                    <div>
+                        <span class="font-semibold">💻 Source:</span>
+                        <a href="https://github.com/udhos/hpademo"
+                            class="text-blue-600 hover:text-blue-800 hover:underline ml-2">
+                            github.com/udhos/hpademo
+                        </a>
                     </div>
                 </div>
+            </div>
 
-                <!-- Demo Area -->
-                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                    <div class="lg:col-span-3">
-                        <div class="bg-white border-2 border-purple-500 rounded-xl shadow-lg p-2">
-                            <canvas id="canvas" width="1000" height="500" class="w-full rounded-lg"></canvas>
-                        </div>
+            <!-- Demo Area -->
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div class="lg:col-span-3">
+                    <div class="bg-white border-2 border-purple-500 rounded-xl shadow-lg p-2">
+                        <canvas id="canvas" width="1000" height="500" class="w-full rounded-lg"></canvas>
                     </div>
-                    <div class="lg:col-span-1">
-                        <div class="bg-gray-50 rounded-xl shadow-lg p-4">
-                            <h3 class="text-lg font-bold text-gray-700 mb-4">⚙️ Controls</h3>
-                            <div id="controls"></div>
+                </div>
+                <div class="lg:col-span-2">
+                    <div class="bg-gray-50 rounded-xl shadow-lg p-4">
+                        <h3 class="text-lg font-bold text-gray-700 mb-4">⚙️ Controls</h3>
+                        <div id="controls">
+                            <!-- Input Section -->
+                            <div class="input-section">
+                                <h4 class="section-title">⚡ System Load Simulation</h4>
+
+                                <!-- Total CPU Usage -->
+                                <div class="control-item control-input">
+                                    <label for="slider-cpu-usage">Total CPU Usage (mCores)</label>
+                                    <div class="input-row">
+                                        <input type="range" id="slider-cpu-usage" min="10" max="100000" value="100">
+                                        <input type="number" id="textbox-cpu-usage" min="10" max="100000" value="100">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Configuration Section -->
+                            <div class="config-section">
+                                <h4 class="section-title">⚙️ HPA Configuration</h4>
+
+                                <!-- Total CPU Usage -->
+                                <div class="control-item">
+                                    <label for="slider-cpu-usage">Total CPU Usage (mCores)</label>
+                                    <div class="input-row">
+                                        <input type="range" id="slider-cpu-usage" min="10" max="100000" value="100">
+                                        <input type="number" id="textbox-cpu-usage" min="10" max="100000" value="100">
+                                    </div>
+                                </div>
+
+                                <!-- POD CPU Request -->
+                                <div class="control-item">
+                                    <label for="slider-pod-cpu-request">POD CPU Request (mCores)</label>
+                                    <div class="input-row">
+                                        <input type="range" id="slider-pod-cpu-request" min="10" max="10000"
+                                            value="200">
+                                        <input type="number" id="textbox-pod-cpu-request" min="10" max="10000"
+                                            value="200">
+                                    </div>
+                                </div>
+
+                                <!-- POD CPU Limit -->
+                                <div class="control-item">
+                                    <label for="slider-pod-cpu-limit">POD CPU Limit (mCores)</label>
+                                    <div class="input-row">
+                                        <input type="range" id="slider-pod-cpu-limit" min="10" max="10000" value="600">
+                                        <input type="number" id="textbox-pod-cpu-limit" min="10" max="10000"
+                                            value="600">
+                                    </div>
+                                </div>
+
+                                <!-- HPA Min Replicas -->
+                                <div class="control-item">
+                                    <label for="slider-hpa-min-replicas">HPA Min Replicas</label>
+                                    <div class="input-row">
+                                        <input type="range" id="slider-hpa-min-replicas" min="1" max="1000" value="1">
+                                        <input type="number" id="textbox-hpa-min-replicas" min="1" max="1000" value="1">
+                                    </div>
+                                </div>
+
+                                <!-- HPA Max Replicas -->
+                                <div class="control-item">
+                                    <label for="slider-hpa-max-replicas">HPA Max Replicas</label>
+                                    <div class="input-row">
+                                        <input type="range" id="slider-hpa-max-replicas" min="1" max="1000" value="10">
+                                        <input type="number" id="textbox-hpa-max-replicas" min="1" max="1000" value="10">
+                                    </div>
+                                </div>
+
+                                <!-- HPA Target CPU Utilization -->
+                                <div class="control-item">
+                                    <label for="slider-hpa-target-cpu">HPA Target CPU Utilization</label>
+                                    <div class="input-row">
+                                        <input type="range" id="slider-hpa-target-cpu" min="1" max="200" value="80">
+                                        <input type="number" id="textbox-hpa-target-cpu" min="1" max="200" value="80">
+                                    </div>
+                                </div>
+
+                                <!-- Divider -->
+                                <hr class="control-divider">
+
+                                <!-- Number of Pods -->
+                                <div class="control-item control-output">
+                                    <label for="slider-number-of-pods">
+                                        Number of Pods
+                                        <span class="badge-auto">MANUAL & COMPUTED</span>
+                                    </label>
+                                    <div class="input-row">
+                                        <input type="range" id="slider-number-of-pods" min="1" max="1000" value="2">
+                                        <input type="number" id="textbox-number-of-pods" min="1" max="1000" value="2">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </body>
+    </div>
+</body>
+
 </html>

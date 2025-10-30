@@ -104,117 +104,48 @@ type sliderControl struct {
 }
 
 func addHTMLControls(document js.Value) podControls {
-
-	// retrieve the container "controls" from the HTML
-	uiControls := document.Call("getElementById", "controls")
-
-	// create an element for stacking slider controls vertically
-	container := document.Call("createElement", "div")
-	container.Get("style").Set("display", "flex")
-	container.Get("style").Set("flexDirection", "column")
-	container.Get("style").Set("gap", "10px")
-	uiControls.Call("appendChild", container)
-
 	var controls podControls
 
-	// create a slider for Total CPU Usage
-	controls.sliderCPUUsage = createSliderWithTextBoxAndLabel(document, container, "Total CPU Usage (mCores)", 10, 100000, 100)
+	// Get references to existing HTML elements
+	controls.sliderCPUUsage = getSliderControl(document, "slider-cpu-usage", "textbox-cpu-usage")
+	controls.sliderPODCPURequest = getSliderControl(document, "slider-pod-cpu-request", "textbox-pod-cpu-request")
+	controls.sliderPODCPULimit = getSliderControl(document, "slider-pod-cpu-limit", "textbox-pod-cpu-limit")
+	controls.sliderHPAMinReplicas = getSliderControl(document, "slider-hpa-min-replicas", "textbox-hpa-min-replicas")
+	controls.sliderHPAMaxReplicas = getSliderControl(document, "slider-hpa-max-replicas", "textbox-hpa-max-replicas")
+	controls.sliderHPATargetCPUUtilization = getSliderControl(document, "slider-hpa-target-cpu", "textbox-hpa-target-cpu")
+	controls.sliderNumberOfPods = getSliderControl(document, "slider-number-of-pods", "textbox-number-of-pods")
 
-	// create a slider for POD CPU Request
-	controls.sliderPODCPURequest = createSliderWithTextBoxAndLabel(document, container, "POD CPU Request (mCores)", 10, 10000, 200)
-
-	// create a slider for POD CPU Limit
-	controls.sliderPODCPULimit = createSliderWithTextBoxAndLabel(document, container, "POD CPU Limit (mCores)", 10, 10000, 600)
-
-	const (
-		minPods = 1
-		maxPods = 1000
-	)
-
-	// create a slider for HPA Min Pods
-	controls.sliderHPAMinReplicas = createSliderWithTextBoxAndLabel(document, container, "HPA Min Replicas", minPods, maxPods, 1)
-
-	// create a slider for HPA Max Pods
-	controls.sliderHPAMaxReplicas = createSliderWithTextBoxAndLabel(document, container, "HPA Max Replicas", minPods, maxPods, 10)
-
-	// create a slider for HPA Target CPU Utilization
-	controls.sliderHPATargetCPUUtilization = createSliderWithTextBoxAndLabel(document, container, "HPA Target CPU Utilization", 1, 200, 80)
-
-	// create a slider for Number of Pods
-	controls.sliderNumberOfPods = createSliderWithTextBoxAndLabel(document, container, "Number of Pods", minPods, maxPods, 2)
+	// Setup synchronization between sliders and textboxes
+	setupSliderSync(controls.sliderCPUUsage)
+	setupSliderSync(controls.sliderPODCPURequest)
+	setupSliderSync(controls.sliderPODCPULimit)
+	setupSliderSync(controls.sliderHPAMinReplicas)
+	setupSliderSync(controls.sliderHPAMaxReplicas)
+	setupSliderSync(controls.sliderHPATargetCPUUtilization)
+	setupSliderSync(controls.sliderNumberOfPods)
 
 	return controls
 }
 
-func createSliderWithTextBoxAndLabel(document js.Value,
-	container js.Value, labelText string, minValue, maxValue, initial int) sliderControl {
-
-	// create a child control container to hold label, slider and text box
-	controlContainer := document.Call("createElement", "div")
-	controlContainer.Set("className", "control-item") // ADIÇÃO: classe para estilização
-	controlContainer.Get("style").Set("display", "flex")
-	controlContainer.Get("style").Set("flexDirection", "column")
-	controlContainer.Get("style").Set("gap", "5px")
-	controlContainer.Get("style").Set("padding", "10px")
-	controlContainer.Get("style").Set("borderRadius", "8px")
-	controlContainer.Get("style").Set("backgroundColor", "#f8f9fa")
-	controlContainer.Get("style").Set("transition", "all 0.3s") // ADIÇÃO: transição suave
-	container.Call("appendChild", controlContainer)
-
-	// create a label (MOVIDO PARA CIMA)
-	label := document.Call("createElement", "label")
-	label.Set("innerHTML", labelText)
-	label.Get("style").Set("fontSize", "12px")
-	label.Get("style").Set("fontWeight", "600")
-	label.Get("style").Set("color", "#374151")
-	label.Get("style").Set("marginBottom", "4px")
-	controlContainer.Call("appendChild", label)
-
-	// create a container for slider and textbox in the same row
-	inputRow := document.Call("createElement", "div")
-	inputRow.Get("style").Set("display", "flex")
-	inputRow.Get("style").Set("gap", "8px")
-	inputRow.Get("style").Set("alignItems", "center")
-	controlContainer.Call("appendChild", inputRow)
-
-	// create a slider
-	slider := document.Call("createElement", "input")
-	slider.Set("type", "range")
-	slider.Set("min", minValue)
-	slider.Set("max", maxValue)
-	slider.Set("value", initial)
-	slider.Get("style").Set("flex", "1")
-	slider.Get("style").Set("cursor", "pointer")
-	inputRow.Call("appendChild", slider)
-
-	// create a text box
-	textBox := document.Call("createElement", "input")
-	textBox.Set("type", "number")
-	textBox.Set("min", minValue)
-	textBox.Set("max", maxValue)
-	textBox.Set("value", initial)
-	textBox.Get("style").Set("width", "70px")
-	textBox.Get("style").Set("padding", "4px 8px")
-	textBox.Get("style").Set("border", "1px solid #d1d5db")
-	textBox.Get("style").Set("borderRadius", "4px")
-	textBox.Get("style").Set("fontSize", "14px")
-	textBox.Get("style").Set("backgroundColor", "white") // ADIÇÃO: fundo branco
-	inputRow.Call("appendChild", textBox)
-
-	// synchronize slider and text box
-	slider.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		value := slider.Get("value").String()
-		textBox.Set("value", value)
-		return nil
-	}))
-
-	textBox.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		value := textBox.Get("value").String()
-		slider.Set("value", value)
-		return nil
-	}))
-
+func getSliderControl(document js.Value, sliderID, textboxID string) sliderControl {
+	slider := document.Call("getElementById", sliderID)
+	textBox := document.Call("getElementById", textboxID)
 	return sliderControl{slider: slider, textBox: textBox}
+}
+
+func setupSliderSync(control sliderControl) {
+	// Synchronize slider and text box
+	control.slider.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		value := control.slider.Get("value").String()
+		control.textBox.Set("value", value)
+		return nil
+	}))
+
+	control.textBox.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		value := control.textBox.Get("value").String()
+		control.slider.Set("value", value)
+		return nil
+	}))
 }
 
 func updateChart(c *chart, newPodValue int) {
