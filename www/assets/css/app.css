@@ -405,3 +405,98 @@ body.dark-mode .control-output input[type="number"] {
     border-color: #3b82f6 !important;
     color: #93c5fd !important;
 }
+
+/* ========================================
+   CHART LEGENDS (COMPACT TABLE)
+   ======================================== */
+
+.chart-legend-table {
+    display: flex;
+    justify-content: center;
+    margin: 0.5rem 0 1.5rem 0;
+}
+
+.legend-table {
+    border-collapse: separate;
+    border-spacing: 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+.legend-table tr {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.legend-table td {
+    display: inline-block;
+}
+
+.legend-label {
+    color: #6b7280;
+    font-weight: 600;
+    text-align: right;
+    padding-right: 0.3rem;
+    white-space: nowrap;
+}
+
+.legend-value {
+    color: #1f2937;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    background: #f3f4f6;
+    padding: 0.3rem 0.85rem;
+    border-radius: 0.375rem;
+    min-width: 3.5rem;
+    text-align: center;
+    transition: all 0.2s ease;
+    border: 2px solid #e5e7eb;
+    margin-right: 1rem;
+}
+
+.legend-value:last-child {
+    margin-right: 0;
+}
+
+.legend-value:hover {
+    background: #e5e7eb;
+    transform: scale(1.05);
+    border-color: #d1d5db;
+}
+
+/* Separador visual entre grupos */
+.legend-label:not(:first-child) {
+    position: relative;
+    padding-left: 1rem;
+}
+
+.legend-label:not(:first-child)::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 20px;
+    width: 2px;
+    background: linear-gradient(to bottom, transparent, #d1d5db, transparent);
+}
+
+/* Dark Mode - Chart Legends */
+body.dark-mode .legend-label {
+    color: #9ca3af;
+}
+
+body.dark-mode .legend-value {
+    color: #e5e7eb;
+    background: #374151;
+    border-color: #4b5563;
+}
+
+body.dark-mode .legend-value:hover {
+    background: #4b5563;
+    border-color: #6b7280;
+}
+
+body.dark-mode .legend-label:not(:first-child)::before {
+    background: linear-gradient(to bottom, transparent, #4b5563, transparent);
+}

@@ -22,3 +22,23 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     updateDarkModeButton(isDark);
 });
+
+// Function to render title with version (called from Go)
+window.renderTitleVersion = function(version) {
+    const titleElement = document.getElementById('title');
+    if (titleElement && version) {
+        titleElement.setAttribute('data-version', version);
+        titleElement.textContent = `🚀 HPA Demo v${version}`;
+    }
+};
+
+// Function to update legend values (called from Go)
+window.updateLegend = function(legendPrefix, min, max, current) {
+    const minEl = document.getElementById(`${legendPrefix}_min`);
+    const maxEl = document.getElementById(`${legendPrefix}_max`);
+    const currentEl = document.getElementById(`${legendPrefix}_current`);
+    
+    if (minEl) minEl.textContent = min;
+    if (maxEl) maxEl.textContent = max;
+    if (currentEl) currentEl.textContent = current;
+};
