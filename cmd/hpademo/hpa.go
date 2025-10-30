@@ -14,7 +14,9 @@ import (
 // DesiredPods = TotalCPUUsage / (PODCPURequest * CurrentPods * TargetCPUUtilization)
 // DesiredPods is ceiled to the next integer if not an integer.
 // The result is then clamped between MinPods and MaxPods.
-func runHPADemoSimulation(controls podControls) int {
+//
+// allowScale reports if scale tolerance allowed scaling.
+func runHPADemoSimulation(controls podControls) (desiredPodsInt int, allowScale bool) {
 	currentPods := getSliderValueAsInt(controls.sliderNumberOfPods.slider)
 	totalCPUUsage := getSliderValueAsInt(controls.sliderCPUUsage.slider)
 	podCPULimit := getSliderValueAsInt(controls.sliderPODCPULimit.slider)
@@ -42,11 +44,9 @@ func runHPADemoSimulation(controls podControls) int {
 	// calculate currentMetric / desiredMetric
 	usageRatio := cpuMetric / target
 
-	var desiredPodsInt int
-
 	// do not scale if within tolerance (cpuMetric close enough to target).
 	if withinTolerance(usageRatio) {
-		fmt.Printf("hpademo %s: within tolerance (cpuMetric=%v target=%v usageRatio=%v tolerance=%v ratioRange=%v..%v), not scaling\n", version, cpuMetric, target, usageRatio, scaleTolerance, (1.0 - scaleTolerance), (1.0 + scaleTolerance))
+		fmt.Printf("hpademo %s: within tolerance: cpuMetric=%v target=%v usageRatio=%v tolerance=%v ratioRange=(%v - %v), not scaling\n", version, cpuMetric, target, usageRatio, scaleTolerance, (1.0 - scaleTolerance), (1.0 + scaleTolerance))
 		desiredPodsInt = currentPods
 	} else {
 		// calculate DesiredPods
@@ -54,6 +54,8 @@ func runHPADemoSimulation(controls podControls) int {
 
 		// ceil DesiredPods to next integer using math.Ceil function
 		desiredPodsInt = int(math.Ceil(desiredPods))
+
+		allowScale = true
 	}
 
 	// limit scaling speed according limit function
@@ -78,7 +80,7 @@ func runHPADemoSimulation(controls podControls) int {
 	fmt.Printf("hpademo %s: currentPods=%d totalCPUUsage=%d podCPURequest=%d cpuMetric=%v targetCPUUtilization=%v => desiredPods=%d\n",
 		version, currentPods, totalCPUUsage, podCPURequest, cpuMetric, target, desiredPodsInt)
 
-	return desiredPodsInt
+	return desiredPodsInt, allowScale
 }
 
 const scaleTolerance = 0.1 // 10% for both up and down

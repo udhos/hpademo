@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 	"syscall/js"
+	"time"
 )
 
 type subchart struct {
@@ -77,6 +78,7 @@ func main() {
 	drawCharts(canvasPodsCtx, canvasPodsLoadCtx, canvasUnmetLoadCtx, c)
 
 	var lastHPAEvaluation int
+	var lastScanlingDown time.Time
 
 	// call updateChart every second
 	js.Global().Call("setInterval", js.FuncOf(func(this js.Value, args []js.Value) any {
@@ -88,10 +90,54 @@ func main() {
 		if lastHPAEvaluation >= 15 {
 			// get from HPA simulation
 			lastHPAEvaluation = 0
-			newPodValue = runHPADemoSimulation(controls)
-			// update number of pods slider to reflect HPA decision
-			controls.sliderNumberOfPods.slider.Set("value", newPodValue)
-			controls.sliderNumberOfPods.textBox.Set("value", newPodValue)
+			oldPodValue := getSliderValueAsInt(controls.sliderNumberOfPods.slider)
+
+			var isScaleTolerationAllowed bool
+			newPodValue, isScaleTolerationAllowed = runHPADemoSimulation(controls)
+
+			isScaling := newPodValue != oldPodValue
+
+			var isScalingDownAllowed bool
+
+			isScalingDown := newPodValue < oldPodValue
+			if isScalingDown {
+				// scaling down, check stabilization window
+				elapSecs := time.Since(lastScanlingDown).Seconds()
+				scaleDownWindow := float64(getSliderValueAsInt(controls.sliderScaleDownStabilizationWindow.slider))
+				isScalingDownAllowed = elapSecs > scaleDownWindow
+				if isScalingDownAllowed {
+					lastScanlingDown = time.Now()
+				} else {
+					fmt.Printf("lastScaleDown=%v <= scaleDownStabilizationWindow=%v, not scaling down\n",
+						elapSecs, scaleDownWindow)
+				}
+			}
+
+			// isScaleTolerationAllowed
+			// isScalingDownAllowed
+			// isScaling
+			// isScalingDown
+			willScale := true
+			if !isScaleTolerationAllowed {
+				willScale = false // do not scale because ratio is within toleration range
+			}
+			if !isScaling {
+				willScale = false // do not scale because pods unchanged
+			}
+			if isScalingDown && !isScalingDownAllowed {
+				// do not scale because cannot scale down within stabilization window
+				willScale = false
+			}
+
+			if willScale {
+				// update number of pods slider to reflect HPA decision
+				controls.sliderNumberOfPods.slider.Set("value", newPodValue)
+				controls.sliderNumberOfPods.textBox.Set("value", newPodValue)
+
+				scaleDeploy(newPodValue) // send scale to deploy
+			} else {
+				newPodValue = oldPodValue // revert scale
+			}
 		} else {
 			// get from slider
 			newPodValue = getSliderValueAsInt(controls.sliderNumberOfPods.slider)
@@ -130,15 +176,20 @@ func main() {
 	select {}
 }
 
+func scaleDeploy(replicas int) {
+	// FIXME WRITEME TODO
+}
+
 type podControls struct {
-	sliderCPUUsage                sliderControl
-	sliderPODCPURequest           sliderControl
-	sliderPODCPULimit             sliderControl
-	sliderHPAMinReplicas          sliderControl
-	sliderHPAMaxReplicas          sliderControl
-	sliderHPATargetCPUUtilization sliderControl
-	sliderNumberOfPods            sliderControl
-	sliderHistorySize             sliderControl
+	sliderCPUUsage                     sliderControl
+	sliderPODCPURequest                sliderControl
+	sliderPODCPULimit                  sliderControl
+	sliderHPAMinReplicas               sliderControl
+	sliderHPAMaxReplicas               sliderControl
+	sliderHPATargetCPUUtilization      sliderControl
+	sliderNumberOfPods                 sliderControl
+	sliderHistorySize                  sliderControl
+	sliderScaleDownStabilizationWindow sliderControl
 }
 
 type sliderControl struct {
@@ -159,6 +210,7 @@ func addHTMLControls(document js.Value, callbackHistorySize func(string)) podCon
 	controls.sliderHPATargetCPUUtilization = getSliderControl(document, "slider-hpa-target-cpu", "textbox-hpa-target-cpu")
 	controls.sliderNumberOfPods = getSliderControl(document, "slider-number-of-pods", "textbox-number-of-pods")
 	controls.sliderHistorySize = getSliderControl(document, "slider-history-size", "textbox-history-size")
+	controls.sliderScaleDownStabilizationWindow = getSliderControl(document, "slider-scale-down-stabilization-window", "textbox-scale-down-stabilization-window")
 
 	// Setup synchronization between sliders and textboxes
 	setupSliderSync(controls.sliderCPUUsage, nil)
@@ -169,6 +221,7 @@ func addHTMLControls(document js.Value, callbackHistorySize func(string)) podCon
 	setupSliderSync(controls.sliderHPATargetCPUUtilization, nil)
 	setupSliderSync(controls.sliderNumberOfPods, nil)
 	setupSliderSync(controls.sliderHistorySize, callbackHistorySize)
+	setupSliderSync(controls.sliderScaleDownStabilizationWindow, nil)
 
 	return controls
 }
