@@ -332,12 +332,12 @@ func newChart(ctxPods, ctxPodsLoad, ctxUnmetLoad,
 }
 
 func drawCharts(ctxReplicas, ctxPodLoad, ctxUnmetLoad js.Value, c chart) {
-	drawOneChartLine(ctxReplicas, c.pods.legend, c, c.pods.data, 1)
-	drawOneChartLine(ctxPodLoad, c.podsLoad.legend, c, c.podsLoad.data, 0)
-	drawOneChartLine(ctxUnmetLoad, c.unmetLoad.legend, c, c.unmetLoad.data, 0)
+	drawOneChart(ctxReplicas, c.pods.legend, c, c.pods.data, 1)
+	drawOneChart(ctxPodLoad, c.podsLoad.legend, c, c.podsLoad.data, 0)
+	drawOneChart(ctxUnmetLoad, c.unmetLoad.legend, c, c.unmetLoad.data, 0)
 }
 
-func drawOneChartLine(ctx, legend js.Value, c chart, data []int, chartVerticalMinimum int) {
+func drawOneChart(ctx, legend js.Value, c chart, data []int, chartVerticalMinimum int) {
 	// clear canvas
 	ctx.Set("fillStyle", "white")
 	ctx.Call("fillRect", 0, 0, c.canvasWidth, c.canvasHeight)
@@ -401,7 +401,12 @@ func drawOneChartLine(ctx, legend js.Value, c chart, data []int, chartVerticalMi
 	// Draw a label for latest replicas count at right size
 	// But vertically aligned with the last point
 	latestReplicas := data[len(data)-1]
-	x := c.canvasWidth - 60
+
+	labelText = fmt.Sprintf("Cur: %d", latestReplicas)
+	textMetrics := ctx.Call("measureText", labelText)
+	textWidth := textMetrics.Get("width").Float()
+
+	x := c.canvasWidth - int(textWidth) - 5
 	y := c.canvasHeight - ((latestReplicas - chartVerticalMinimum) * c.canvasHeight / maxPodsShifted)
 	// Move y slight up to avoid overlapping with the line
 	y -= 10
@@ -412,7 +417,7 @@ func drawOneChartLine(ctx, legend js.Value, c chart, data []int, chartVerticalMi
 	if y > c.canvasHeight-10 {
 		y = c.canvasHeight - 10
 	}
-	labelText = fmt.Sprintf("Cur: %d", latestReplicas)
+
 	ctx.Call("fillText", labelText, x, y)
 
 	// Draw label with min, max, current replicas into legend element
