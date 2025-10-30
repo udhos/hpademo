@@ -101,9 +101,9 @@ func main() {
 		// evaluate per pod load
 		//
 
-		currentPods := getSliderValueAsInt(controls.sliderNumberOfPods.slider)
-		totalCPUUsage := getSliderValueAsInt(controls.sliderCPUUsage.slider)
-		podCPULimit := getSliderValueAsInt(controls.sliderPODCPULimit.slider)
+		currentPods := float64(getSliderValueAsInt(controls.sliderNumberOfPods.slider))
+		totalCPUUsage := float64(getSliderValueAsInt(controls.sliderCPUUsage.slider))
+		podCPULimit := float64(getSliderValueAsInt(controls.sliderPODCPULimit.slider))
 
 		newPodLoad := totalCPUUsage / currentPods
 		newPodLoad = min(newPodLoad, podCPULimit)
@@ -116,7 +116,7 @@ func main() {
 		newUnmetLoad := totalCPUUsage - metLoad
 
 		// update chart data
-		updateChart(&c, newPodValue, newPodLoad, newUnmetLoad)
+		updateChart(&c, newPodValue, int(newPodLoad), int(newUnmetLoad))
 
 		// redraw chart
 		drawCharts(canvasPodsCtx, canvasPodsLoadCtx, canvasUnmetLoadCtx, c)
