@@ -3,14 +3,14 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"syscall/js"
 )
 
-const version = "0.0.1"
-
 type chart struct {
 	ctx          js.Value
+	legend       js.Value
 	pods         []int
 	canvasWidth  int
 	canvasHeight int
@@ -35,24 +35,33 @@ func main() {
 	versionElement := document.Call("getElementById", "version")
 	versionElement.Set("innerHTML", hpaDemoVersion)
 
-	controls := addHTMLControls(document)
-
-	// find canvas element
-	canvas := document.Call("getElementById", "canvas")
+	// find canvasPods element
+	canvasPods := document.Call("getElementById", "canvas_pods")
+	canvasPodsLegend := document.Call("getElementById", "canvas_pods_legend")
 
 	// get canvas 2d context
-	ctx := canvas.Call("getContext", "2d")
+	canvasPodsCtx := canvasPods.Call("getContext", "2d")
 
 	// get canvas width and height
-	canvasWidth := canvas.Get("width").Int()
-	canvasHeight := canvas.Get("height").Int()
+	canvasWidth := canvasPods.Get("width").Int()
+	canvasHeight := canvasPods.Get("height").Int()
 
 	const historySize = 300
 
-	c := newChart(ctx, canvasWidth, canvasHeight, historySize)
+	c := newChart(canvasPodsCtx, canvasPodsLegend, canvasWidth, canvasHeight, historySize)
+
+	controls := addHTMLControls(document, func(value string) {
+		// Update history size based on slider input
+		historySize, err := strconv.Atoi(value)
+		if err != nil {
+			fmt.Printf("Error converting history size to int: %v\n", err)
+			return
+		}
+		c.resizeHistory(historySize)
+	})
 
 	// call function to draw chart
-	drawChart(ctx, c)
+	drawChart(canvasPodsCtx, c)
 
 	var lastHPAEvaluation int
 
@@ -77,7 +86,7 @@ func main() {
 		updateChart(&c, newPodValue)
 
 		// redraw chart
-		drawChart(ctx, c)
+		drawChart(canvasPodsCtx, c)
 
 		return nil
 	}), 1000)
@@ -96,6 +105,7 @@ type podControls struct {
 	sliderHPAMaxReplicas          sliderControl
 	sliderHPATargetCPUUtilization sliderControl
 	sliderNumberOfPods            sliderControl
+	sliderHistorySize             sliderControl
 }
 
 type sliderControl struct {
@@ -103,7 +113,7 @@ type sliderControl struct {
 	textBox js.Value
 }
 
-func addHTMLControls(document js.Value) podControls {
+func addHTMLControls(document js.Value, callbackHistorySize func(string)) podControls {
 
 	// retrieve the container "controls" from the HTML
 	uiControls := document.Call("getElementById", "controls")
@@ -118,13 +128,13 @@ func addHTMLControls(document js.Value) podControls {
 	var controls podControls
 
 	// create a slider for Total CPU Usage
-	controls.sliderCPUUsage = createSliderWithTextBoxAndLabel(document, container, "Total CPU Usage (mCores)", 10, 100000, 100)
+	controls.sliderCPUUsage = createSliderWithTextBoxAndLabel(document, container, "Total CPU Usage (mCores)", 10, 100000, 100, nil)
 
 	// create a slider for POD CPU Request
-	controls.sliderPODCPURequest = createSliderWithTextBoxAndLabel(document, container, "POD CPU Request (mCores)", 10, 10000, 200)
+	controls.sliderPODCPURequest = createSliderWithTextBoxAndLabel(document, container, "POD CPU Request (mCores)", 10, 10000, 200, nil)
 
 	// create a slider for POD CPU Limit
-	controls.sliderPODCPULimit = createSliderWithTextBoxAndLabel(document, container, "POD CPU Limit (mCores)", 10, 10000, 600)
+	controls.sliderPODCPULimit = createSliderWithTextBoxAndLabel(document, container, "POD CPU Limit (mCores)", 10, 10000, 600, nil)
 
 	const (
 		minPods = 1
@@ -132,22 +142,26 @@ func addHTMLControls(document js.Value) podControls {
 	)
 
 	// create a slider for HPA Min Pods
-	controls.sliderHPAMinReplicas = createSliderWithTextBoxAndLabel(document, container, "HPA Min Replicas", minPods, maxPods, 1)
+	controls.sliderHPAMinReplicas = createSliderWithTextBoxAndLabel(document, container, "HPA Min Replicas", minPods, maxPods, 1, nil)
 
 	// create a slider for HPA Max Pods
-	controls.sliderHPAMaxReplicas = createSliderWithTextBoxAndLabel(document, container, "HPA Max Replicas", minPods, maxPods, 10)
+	controls.sliderHPAMaxReplicas = createSliderWithTextBoxAndLabel(document, container, "HPA Max Replicas", minPods, maxPods, 10, nil)
 
 	// create a slider for HPA Target CPU Utilization
-	controls.sliderHPATargetCPUUtilization = createSliderWithTextBoxAndLabel(document, container, "HPA Target CPU Utilization", 1, 200, 80)
+	controls.sliderHPATargetCPUUtilization = createSliderWithTextBoxAndLabel(document, container, "HPA Target CPU Utilization", 1, 200, 80, nil)
 
 	// create a slider for Number of Pods
-	controls.sliderNumberOfPods = createSliderWithTextBoxAndLabel(document, container, "Number of Pods", minPods, maxPods, 2)
+	controls.sliderNumberOfPods = createSliderWithTextBoxAndLabel(document, container, "Number of Pods", minPods, maxPods, 2, nil)
+
+	// create a slider for history size in seconds
+	controls.sliderHistorySize = createSliderWithTextBoxAndLabel(document, container, "History Size (seconds)", 60, 1800, 300, callbackHistorySize)
 
 	return controls
 }
 
 func createSliderWithTextBoxAndLabel(document js.Value,
-	container js.Value, labelText string, minValue, maxValue, initial int) sliderControl {
+	container js.Value, labelText string, minValue, maxValue, initial int,
+	callback func(string)) sliderControl {
 
 	// create a child control container to hold label, slider and text box
 	controlContainer := document.Call("createElement", "div")
@@ -205,12 +219,18 @@ func createSliderWithTextBoxAndLabel(document js.Value,
 	slider.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		value := slider.Get("value").String()
 		textBox.Set("value", value)
+		if callback != nil {
+			callback(value)
+		}
 		return nil
 	}))
 
 	textBox.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		value := textBox.Get("value").String()
 		slider.Set("value", value)
+		if callback != nil {
+			callback(value)
+		}
 		return nil
 	}))
 
@@ -227,12 +247,29 @@ func updateChart(c *chart, newPodValue int) {
 	c.pods[len(c.pods)-1] = newPodValue
 }
 
-func newChart(ctx js.Value, canvasWidth, canvasHeight, historySize int) chart {
+func (c *chart) resizeHistory(newSize int) {
+	if newSize == len(c.pods) {
+		// no change
+		return
+	}
+
+	newPods := make([]int, newSize)
+
+	// copy existing data to new slice
+	copySize := min(len(c.pods), newSize)
+
+	copy(newPods[newSize-copySize:], c.pods[len(c.pods)-copySize:])
+
+	c.pods = newPods
+}
+
+func newChart(ctx, legend js.Value, canvasWidth, canvasHeight, historySize int) chart {
 	c := chart{
 		ctx:          ctx,
 		pods:         make([]int, historySize),
 		canvasWidth:  canvasWidth,
 		canvasHeight: canvasHeight,
+		legend:       legend,
 	}
 
 	// fill with ones
@@ -264,15 +301,21 @@ func drawChart(ctx js.Value, c chart) {
 	ctx.Call("fillRect", 0, 0, c.canvasWidth, c.canvasHeight)
 
 	// draw a border
-	ctx.Set("strokeStyle", "black")
-	ctx.Set("lineWidth", 2)
-	ctx.Call("strokeRect", 0, 0, c.canvasWidth, c.canvasHeight)
+	/*
+		ctx.Set("strokeStyle", "black")
+		ctx.Set("lineWidth", 2)
+		ctx.Call("strokeRect", 0, 0, c.canvasWidth, c.canvasHeight)
+	*/
 
 	// find max pod value
 	maxPods := 0
+	minPods := math.MaxInt // NaN
 	for _, v := range c.pods {
 		if v > maxPods {
 			maxPods = v
+		}
+		if v < minPods {
+			minPods = v
 		}
 	}
 
@@ -286,10 +329,20 @@ func drawChart(ctx js.Value, c chart) {
 	ctx.Set("lineWidth", 2)
 	ctx.Call("beginPath")
 
+	const chartVerticalMinimum = 1 // shift y axis down to put 1 replica at bottom
+
+	maxPodsShifted := maxPods - chartVerticalMinimum
+	// avoid division by zero
+	if maxPodsShifted <= 0 {
+		maxPodsShifted = 1
+	}
+
+	// now draw considering chartVerticalMinimum
+
 	for i, v := range c.pods {
 		// map pod space to canvas space
 		x := i * c.canvasWidth / len(c.pods)
-		y := c.canvasHeight - (v * c.canvasHeight / maxPods) // invert y axis
+		y := c.canvasHeight - ((v - chartVerticalMinimum) * c.canvasHeight / maxPodsShifted) // invert y axis
 
 		if i == 0 {
 			ctx.Call("moveTo", x, y)
@@ -298,4 +351,38 @@ func drawChart(ctx js.Value, c chart) {
 		}
 	}
 	ctx.Call("stroke")
+
+	// Draw a label for max replicas at top-left corner
+	labelText := fmt.Sprintf("Max: %d", maxPods)
+	ctx.Set("font", "16px Arial")
+	ctx.Set("fillStyle", "black")
+	ctx.Call("fillText", labelText, 10, 20)
+
+	// Draw a label for latest replicas count at right size
+	// But vertically aligned with the last point
+	latestReplicas := c.pods[len(c.pods)-1]
+	x := c.canvasWidth - 60
+	y := c.canvasHeight - ((latestReplicas - chartVerticalMinimum) * c.canvasHeight / maxPodsShifted)
+	// Move y slight up to avoid overlapping with the line
+	y -= 10
+	// Adjust y to avoid drawing outside canvas
+	if y < 20 {
+		y = 20
+	}
+	if y > c.canvasHeight-10 {
+		y = c.canvasHeight - 10
+	}
+	labelText = fmt.Sprintf("Cur: %d", latestReplicas)
+	ctx.Call("fillText", labelText, x, y)
+
+	// Draw label with min, max, current replicas into legend element
+	var minPodsStr string
+	if minPods == math.MaxInt {
+		minPodsStr = "N/A"
+	} else {
+		minPodsStr = fmt.Sprintf("%d", minPods)
+	}
+	legendHTML := fmt.Sprintf("Min:%s Max:%d Current:%d",
+		minPodsStr, maxPods, latestReplicas)
+	c.legend.Set("innerHTML", legendHTML)
 }
