@@ -9,9 +9,9 @@ import (
 )
 
 type subchart struct {
-	ctx    js.Value
-	legend js.Value
-	data   []int
+	ctx      js.Value
+	legendID string
+	data     []int
 }
 
 type chart struct {
@@ -35,22 +35,17 @@ func getSliderValueAsInt(slider js.Value) int {
 func main() {
 	document := js.Global().Get("document")
 
-	// add title with version
-	titleVersion := fmt.Sprintf("🚀 HPA Demo v%s", version)
-	titleElement := document.Call("getElementById", "title")
-	titleElement.Set("innerHTML", titleVersion)
+	// add title with version using JavaScript function
+	js.Global().Call("renderTitleVersion", version)
 
 	// find canvasPods element
 	canvasPods := document.Call("getElementById", "canvas_pods")
-	canvasPodsLegend := document.Call("getElementById", "canvas_pods_legend")
 	canvasPodsCtx := canvasPods.Call("getContext", "2d")
 
 	canvasPodsLoad := document.Call("getElementById", "canvas_pod_cpu_usage")
-	canvasPodsLoadLegend := document.Call("getElementById", "canvas_pod_cpu_usage_legend")
 	canvasPodsLoadCtx := canvasPodsLoad.Call("getContext", "2d")
 
 	canvasUnmetLoad := document.Call("getElementById", "canvas_unmet_cpu_load")
-	canvasUnmetLoadLegend := document.Call("getElementById", "canvas_unmet_cpu_load_legend")
 	canvasUnmetLoadCtx := canvasUnmetLoad.Call("getContext", "2d")
 
 	// get canvas width and height
@@ -60,7 +55,6 @@ func main() {
 	const historySize = 300
 
 	c := newChart(canvasPodsCtx, canvasPodsLoadCtx, canvasUnmetLoadCtx,
-		canvasPodsLegend, canvasPodsLoadLegend, canvasUnmetLoadLegend,
 		canvasWidth, canvasHeight, historySize)
 
 	controls := addHTMLControls(document, func(value string) {
@@ -244,13 +238,12 @@ func resizeSliceInt(oldSlice []int, newSize int) []int {
 	return newSlice
 }
 
-func newChart(ctxPods, ctxPodsLoad, ctxUnmetLoad,
-	legendPods, legendPodsLoad, legendsUnmetLoad js.Value,
+func newChart(ctxPods, ctxPodsLoad, ctxUnmetLoad js.Value,
 	canvasWidth, canvasHeight, historySize int) chart {
 	c := chart{
-		pods:         subchart{ctx: ctxPods, legend: legendPods, data: make([]int, historySize)},
-		podsLoad:     subchart{ctx: ctxPodsLoad, legend: legendPodsLoad, data: make([]int, historySize)},
-		unmetLoad:    subchart{ctx: ctxUnmetLoad, legend: legendsUnmetLoad, data: make([]int, historySize)},
+		pods:         subchart{ctx: ctxPods, legendID: "canvas_pods", data: make([]int, historySize)},
+		podsLoad:     subchart{ctx: ctxPodsLoad, legendID: "canvas_pod_cpu_usage", data: make([]int, historySize)},
+		unmetLoad:    subchart{ctx: ctxUnmetLoad, legendID: "canvas_unmet_cpu_load", data: make([]int, historySize)},
 		canvasWidth:  canvasWidth,
 		canvasHeight: canvasHeight,
 	}
@@ -279,12 +272,12 @@ func newChart(ctxPods, ctxPodsLoad, ctxUnmetLoad,
 }
 
 func drawCharts(ctxReplicas, ctxPodLoad, ctxUnmetLoad js.Value, c chart) {
-	drawOneChartLine(ctxReplicas, c.pods.legend, c, c.pods.data, 1)
-	drawOneChartLine(ctxPodLoad, c.podsLoad.legend, c, c.podsLoad.data, 0)
-	drawOneChartLine(ctxUnmetLoad, c.unmetLoad.legend, c, c.unmetLoad.data, 0)
+	drawOneChartLine(ctxReplicas, c.pods.legendID, c, c.pods.data, 1)
+	drawOneChartLine(ctxPodLoad, c.podsLoad.legendID, c, c.podsLoad.data, 0)
+	drawOneChartLine(ctxUnmetLoad, c.unmetLoad.legendID, c, c.unmetLoad.data, 0)
 }
 
-func drawOneChartLine(ctx, legend js.Value, c chart, data []int, chartVerticalMinimum int) {
+func drawOneChartLine(ctx js.Value, legendID string, c chart, data []int, chartVerticalMinimum int) {
 	// clear canvas
 	ctx.Set("fillStyle", "white")
 	ctx.Call("fillRect", 0, 0, c.canvasWidth, c.canvasHeight)
@@ -362,14 +355,12 @@ func drawOneChartLine(ctx, legend js.Value, c chart, data []int, chartVerticalMi
 	labelText = fmt.Sprintf("Cur: %d", latestReplicas)
 	ctx.Call("fillText", labelText, x, y)
 
-	// Draw label with min, max, current replicas into legend element
+	// Update legend using JavaScript function
 	var minPodsStr string
 	if minPods == math.MaxInt {
 		minPodsStr = "N/A"
 	} else {
 		minPodsStr = fmt.Sprintf("%d", minPods)
 	}
-	legendHTML := fmt.Sprintf("Min:%s Max:%d Current:%d",
-		minPodsStr, maxPods, latestReplicas)
-	legend.Set("innerHTML", legendHTML)
+	js.Global().Call("updateLegend", legendID, minPodsStr, maxPods, latestReplicas)
 }
