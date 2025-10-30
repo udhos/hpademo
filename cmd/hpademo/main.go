@@ -8,10 +8,16 @@ import (
 	"syscall/js"
 )
 
+type subchart struct {
+	ctx    js.Value
+	legend js.Value
+	data   []int
+}
+
 type chart struct {
-	ctx          js.Value
-	legend       js.Value
-	pods         []int
+	pods         subchart
+	podsLoad     subchart
+	unmetLoad    subchart
 	canvasWidth  int
 	canvasHeight int
 }
@@ -29,18 +35,23 @@ func getSliderValueAsInt(slider js.Value) int {
 func main() {
 	document := js.Global().Get("document")
 
-	hpaDemoVersion := fmt.Sprintf("hpademo %s", version)
-
-	// add version to element with id "version"
-	versionElement := document.Call("getElementById", "version")
-	versionElement.Set("innerHTML", hpaDemoVersion)
+	// add title with version
+	titleVersion := fmt.Sprintf("🚀 HPA Demo v%s", version)
+	titleElement := document.Call("getElementById", "title")
+	titleElement.Set("innerHTML", titleVersion)
 
 	// find canvasPods element
 	canvasPods := document.Call("getElementById", "canvas_pods")
 	canvasPodsLegend := document.Call("getElementById", "canvas_pods_legend")
-
-	// get canvas 2d context
 	canvasPodsCtx := canvasPods.Call("getContext", "2d")
+
+	canvasPodsLoad := document.Call("getElementById", "canvas_pod_cpu_usage")
+	canvasPodsLoadLegend := document.Call("getElementById", "canvas_pod_cpu_usage_legend")
+	canvasPodsLoadCtx := canvasPodsLoad.Call("getContext", "2d")
+
+	canvasUnmetLoad := document.Call("getElementById", "canvas_unmet_cpu_load")
+	canvasUnmetLoadLegend := document.Call("getElementById", "canvas_unmet_cpu_load_legend")
+	canvasUnmetLoadCtx := canvasUnmetLoad.Call("getContext", "2d")
 
 	// get canvas width and height
 	canvasWidth := canvasPods.Get("width").Int()
@@ -48,7 +59,9 @@ func main() {
 
 	const historySize = 300
 
-	c := newChart(canvasPodsCtx, canvasPodsLegend, canvasWidth, canvasHeight, historySize)
+	c := newChart(canvasPodsCtx, canvasPodsLoadCtx, canvasUnmetLoadCtx,
+		canvasPodsLegend, canvasPodsLoadLegend, canvasUnmetLoadLegend,
+		canvasWidth, canvasHeight, historySize)
 
 	controls := addHTMLControls(document, func(value string) {
 		// Update history size based on slider input
@@ -61,14 +74,16 @@ func main() {
 	})
 
 	// call function to draw chart
-	drawChart(canvasPodsCtx, c)
+	drawCharts(canvasPodsCtx, canvasPodsLoadCtx, canvasUnmetLoadCtx, c)
 
 	var lastHPAEvaluation int
 
 	// call updateChart every second
-	js.Global().Call("setInterval", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	js.Global().Call("setInterval", js.FuncOf(func(this js.Value, args []js.Value) any {
+		//
+		// evaluate hpa
+		//
 		var newPodValue int
-
 		lastHPAEvaluation++
 		if lastHPAEvaluation >= 15 {
 			// get from HPA simulation
@@ -82,11 +97,29 @@ func main() {
 			newPodValue = getSliderValueAsInt(controls.sliderNumberOfPods.slider)
 		}
 
+		//
+		// evaluate per pod load
+		//
+
+		currentPods := getSliderValueAsInt(controls.sliderNumberOfPods.slider)
+		totalCPUUsage := getSliderValueAsInt(controls.sliderCPUUsage.slider)
+		podCPULimit := getSliderValueAsInt(controls.sliderPODCPULimit.slider)
+
+		newPodLoad := totalCPUUsage / currentPods
+		newPodLoad = min(newPodLoad, podCPULimit)
+
+		//
+		// evaluate total unmet load
+		//
+
+		metLoad := newPodLoad * currentPods
+		newUnmetLoad := totalCPUUsage - metLoad
+
 		// update chart data
-		updateChart(&c, newPodValue)
+		updateChart(&c, newPodValue, newPodLoad, newUnmetLoad)
 
 		// redraw chart
-		drawChart(canvasPodsCtx, c)
+		drawCharts(canvasPodsCtx, canvasPodsLoadCtx, canvasUnmetLoadCtx, c)
 
 		return nil
 	}), 1000)
@@ -237,44 +270,64 @@ func createSliderWithTextBoxAndLabel(document js.Value,
 	return sliderControl{slider: slider, textBox: textBox}
 }
 
-func updateChart(c *chart, newPodValue int) {
+func updateChart(c *chart, newPodValue, newPodLoad, newUnmetLoad int) {
+
+	last := len(c.pods.data) - 1
+
 	// shift left
-	for i := 0; i < len(c.pods)-1; i++ {
-		c.pods[i] = c.pods[i+1]
+	for i := 0; i < last; i++ {
+		c.pods.data[i] = c.pods.data[i+1]
+		c.podsLoad.data[i] = c.podsLoad.data[i+1]
+		c.unmetLoad.data[i] = c.unmetLoad.data[i+1]
 	}
 
 	// add new value at the end
-	c.pods[len(c.pods)-1] = newPodValue
+	c.pods.data[last] = newPodValue
+	c.podsLoad.data[last] = newPodLoad
+	c.unmetLoad.data[last] = newUnmetLoad
 }
 
 func (c *chart) resizeHistory(newSize int) {
-	if newSize == len(c.pods) {
+	if newSize == len(c.pods.data) {
 		// no change
 		return
 	}
 
-	newPods := make([]int, newSize)
-
-	// copy existing data to new slice
-	copySize := min(len(c.pods), newSize)
-
-	copy(newPods[newSize-copySize:], c.pods[len(c.pods)-copySize:])
-
-	c.pods = newPods
+	c.pods.data = resizeSliceInt(c.pods.data, newSize)
+	c.podsLoad.data = resizeSliceInt(c.podsLoad.data, newSize)
+	c.unmetLoad.data = resizeSliceInt(c.unmetLoad.data, newSize)
 }
 
-func newChart(ctx, legend js.Value, canvasWidth, canvasHeight, historySize int) chart {
-	c := chart{
-		ctx:          ctx,
-		pods:         make([]int, historySize),
-		canvasWidth:  canvasWidth,
-		canvasHeight: canvasHeight,
-		legend:       legend,
+func resizeSliceInt(oldSlice []int, newSize int) []int {
+	if newSize == len(oldSlice) {
+		// no change
+		return oldSlice
 	}
 
-	// fill with ones
+	newSlice := make([]int, newSize)
+
+	// copy existing data to new slice
+	copySize := min(len(oldSlice), newSize)
+
+	copy(newSlice[newSize-copySize:], oldSlice[len(oldSlice)-copySize:])
+
+	return newSlice
+}
+
+func newChart(ctxPods, ctxPodsLoad, ctxUnmetLoad,
+	legendPods, legendPodsLoad, legendsUnmetLoad js.Value,
+	canvasWidth, canvasHeight, historySize int) chart {
+	c := chart{
+		pods:         subchart{ctx: ctxPods, legend: legendPods, data: make([]int, historySize)},
+		podsLoad:     subchart{ctx: ctxPodsLoad, legend: legendPodsLoad, data: make([]int, historySize)},
+		unmetLoad:    subchart{ctx: ctxUnmetLoad, legend: legendsUnmetLoad, data: make([]int, historySize)},
+		canvasWidth:  canvasWidth,
+		canvasHeight: canvasHeight,
+	}
+
+	// fill pods with 1 (only for replicas)
 	for i := 0; i < historySize; i++ {
-		c.pods[i] = 1
+		c.pods.data[i] = 1
 	}
 
 	/*
@@ -295,7 +348,13 @@ func newChart(ctx, legend js.Value, canvasWidth, canvasHeight, historySize int) 
 	return c
 }
 
-func drawChart(ctx js.Value, c chart) {
+func drawCharts(ctxReplicas, ctxPodLoad, ctxUnmetLoad js.Value, c chart) {
+	drawOneChartLine(ctxReplicas, c.pods.legend, c, c.pods.data, 1)
+	drawOneChartLine(ctxPodLoad, c.podsLoad.legend, c, c.podsLoad.data, 0)
+	drawOneChartLine(ctxUnmetLoad, c.unmetLoad.legend, c, c.unmetLoad.data, 0)
+}
+
+func drawOneChartLine(ctx, legend js.Value, c chart, data []int, chartVerticalMinimum int) {
 	// clear canvas
 	ctx.Set("fillStyle", "white")
 	ctx.Call("fillRect", 0, 0, c.canvasWidth, c.canvasHeight)
@@ -310,7 +369,7 @@ func drawChart(ctx js.Value, c chart) {
 	// find max pod value
 	maxPods := 0
 	minPods := math.MaxInt // NaN
-	for _, v := range c.pods {
+	for _, v := range data {
 		if v > maxPods {
 			maxPods = v
 		}
@@ -329,8 +388,6 @@ func drawChart(ctx js.Value, c chart) {
 	ctx.Set("lineWidth", 2)
 	ctx.Call("beginPath")
 
-	const chartVerticalMinimum = 1 // shift y axis down to put 1 replica at bottom
-
 	maxPodsShifted := maxPods - chartVerticalMinimum
 	// avoid division by zero
 	if maxPodsShifted <= 0 {
@@ -339,9 +396,9 @@ func drawChart(ctx js.Value, c chart) {
 
 	// now draw considering chartVerticalMinimum
 
-	for i, v := range c.pods {
+	for i, v := range data {
 		// map pod space to canvas space
-		x := i * c.canvasWidth / len(c.pods)
+		x := i * c.canvasWidth / len(data)
 		y := c.canvasHeight - ((v - chartVerticalMinimum) * c.canvasHeight / maxPodsShifted) // invert y axis
 
 		if i == 0 {
@@ -360,7 +417,7 @@ func drawChart(ctx js.Value, c chart) {
 
 	// Draw a label for latest replicas count at right size
 	// But vertically aligned with the last point
-	latestReplicas := c.pods[len(c.pods)-1]
+	latestReplicas := data[len(data)-1]
 	x := c.canvasWidth - 60
 	y := c.canvasHeight - ((latestReplicas - chartVerticalMinimum) * c.canvasHeight / maxPodsShifted)
 	// Move y slight up to avoid overlapping with the line
@@ -384,5 +441,5 @@ func drawChart(ctx js.Value, c chart) {
 	}
 	legendHTML := fmt.Sprintf("Min:%s Max:%d Current:%d",
 		minPodsStr, maxPods, latestReplicas)
-	c.legend.Set("innerHTML", legendHTML)
+	legend.Set("innerHTML", legendHTML)
 }

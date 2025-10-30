@@ -114,6 +114,14 @@
                 filter: invert(1) hue-rotate(180deg);
             }
 
+            body.dark-mode #canvas_pod_cpu_usage {
+                filter: invert(1) hue-rotate(180deg);
+            }
+
+            body.dark-mode #canvas_unmet_cpu_load {
+                filter: invert(1) hue-rotate(180deg);
+            }
+
             /* ADIÇÃO: Estilos para controles em dark mode */
             body.dark-mode .control-item {
                 background-color: #374151 !important;
@@ -171,9 +179,9 @@
             <div class="bg-white rounded-2xl shadow-2xl p-8">
                 <!-- Header -->
                 <div class="text-center mb-8">
-                    <div id="version" class="inline-block bg-purple-100 text-purple-800 px-4 py-1 rounded-full text-sm font-semibold mb-4"></div>
-                    <h1 class="text-5xl font-bold text-purple-600 mb-4">🚀 HPA Demo</h1>
-                    <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+                    <h1 id="title" class="text-5xl font-bold text-purple-600 mb-4">🚀 HPA Demo</h1>
+                    <!-- <p class="text-lg text-gray-600 max-w-3xl mx-auto" -->
+                        <p class="text-lg"></p>
                         <span class="font-bold">hpademo</span> is a simple demo for Kubernetes Horizontal Pod Autoscaler (HPA), 
                         written in Go and compiled to WebAssembly.
                     </p>
@@ -200,18 +208,35 @@
                 <!-- Demo Area -->
                 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     <!-- Canvas Area -->
-                    <!-- Add a visual name to the canvas element -->
+
                     <div class="lg:col-span-3">
+                        <!-- Replicas Chart -->
                         <div class="text-lg font-bold text-gray-700 mb-4">Replicas</div>
                         <div class="bg-white border-2 border-purple-500 rounded-xl shadow-lg p-2">
                             <canvas id="canvas_pods" width="1000" height="200" class="w-full rounded-lg"></canvas>
                         </div>
-                        <!-- Center legend -->
                         <center><div id="canvas_pods_legend"></div></center>
+
+                        <!-- Pod CPU Usage Chart -->
+                        <div class="text-lg font-bold text-gray-700 mb-4">Per-Pod CPU Usage</div>
+                        <div class="bg-white border-2 border-purple-500 rounded-xl shadow-lg p-2">
+                            <canvas id="canvas_pod_cpu_usage" width="1000" height="200" class="w-full rounded-lg"></canvas>
+                        </div>
+                        <center><div id="canvas_pod_cpu_usage_legend"></div></center>
+
+                        <!-- Unmet CPU Load Chart -->
+                        <div class="text-lg font-bold text-gray-700 mb-4">Total Unmet CPU Load</div>
+                        <div class="bg-white border-2 border-purple-500 rounded-xl shadow-lg p-2">
+                            <canvas id="canvas_unmet_cpu_load" width="1000" height="200" class="w-full rounded-lg"></canvas>
+                        </div>
+                        <!-- Center legend -->
+                        <center><div id="canvas_unmet_cpu_load_legend"></div></center>
+
                     </div>
+
+                    <!-- Controls Area -->
                     <div class="lg:col-span-1">
                         <div class="bg-gray-50 rounded-xl shadow-lg p-4">
-                            <h3 class="text-lg font-bold text-gray-700 mb-4">⚙️ Controls</h3>
                             <div id="controls"></div>
                         </div>
                     </div>
