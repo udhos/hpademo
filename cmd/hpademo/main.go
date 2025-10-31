@@ -92,8 +92,8 @@ func main() {
 			lastHPAEvaluation = 0
 			oldPodValue := getSliderValueAsInt(controls.sliderNumberOfPods.slider)
 
-			var isScaleTolerationAllowed bool
-			newPodValue, isScaleTolerationAllowed = runHPADemoSimulation(controls)
+			var isScaleToleranceAllowed bool
+			newPodValue, isScaleToleranceAllowed = runHPADemoSimulation(controls)
 
 			isScaling := newPodValue != oldPodValue
 
@@ -113,13 +113,13 @@ func main() {
 				}
 			}
 
-			// isScaleTolerationAllowed
+			// isScaleToleranceAllowed
 			// isScalingDownAllowed
 			// isScaling
 			// isScalingDown
 			willScale := true
-			if !isScaleTolerationAllowed {
-				willScale = false // do not scale because ratio is within toleration range
+			if !isScaleToleranceAllowed {
+				willScale = false // do not scale because ratio is within Tolerance range
 			}
 			if !isScaling {
 				willScale = false // do not scale because pods unchanged
