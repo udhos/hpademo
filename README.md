@@ -8,6 +8,26 @@
 
 Online demo: https://udhos.github.io/hpademo/www/
 
+# features
+
+- Simulate HPA based on CPU.
+- Chart for number of replicas.
+- Chart for per-pod CPU usage.
+- Chart for total unmet CPU load.
+- Dark/light modes.
+- Customizable:
+  - Inject total CPU usage.
+  - POD CPU request.
+  - POD CPU limit.
+  - HPA min replicas.
+  - HPA max replicas.
+  - HPA targe cpu utilization percentage.
+  - Chart data history size (300s default).
+  - Scale down stabilization window (300s default).
+- Non-customizable:
+  - 10% HPA Scale Tolerance.
+  - 15s HPA Scale Period.
+
 # clone
 
 ```bash
@@ -15,7 +35,7 @@ git clone https://github.com/udhos/hpademo
 cd hpademo
 ```
 
-# editing
+# edit
 
 Set `GOOS=js GOARCH=wasm` before starting your editor/IDE.
 
