@@ -85,8 +85,8 @@
                                 <div class="control-item">
                                     <label for="slider-cpu-usage">Total CPU Usage (mCores)</label>
                                     <div class="input-row">
-                                        <input type="range" id="slider-cpu-usage" min="10" max="100000" value="100">
-                                        <input type="number" id="textbox-cpu-usage" min="10" max="100000" value="100">
+                                        <input type="range" id="slider-cpu-usage" min="10" max="100000" value="200">
+                                        <input type="number" id="textbox-cpu-usage" min="10" max="100000" value="200">
                                     </div>
                                 </div>
                             </div>
@@ -150,8 +150,8 @@
                                         <span class="badge-auto">MANUAL & COMPUTED</span>
                                     </label>
                                     <div class="input-row">
-                                        <input type="range" id="slider-number-of-pods" min="1" max="1000" value="2">
-                                        <input type="number" id="textbox-number-of-pods" min="1" max="1000" value="2">
+                                        <input type="range" id="slider-number-of-pods" min="1" max="1000" value="1">
+                                        <input type="number" id="textbox-number-of-pods" min="1" max="1000" value="1">
                                     </div>
                                 </div>
 
@@ -159,8 +159,8 @@
                                 <div class="control-item">
                                     <label for="slider-history-size">History Size (seconds)</label>
                                     <div class="input-row">
-                                        <input type="range" id="slider-history-size" min="60" max="1800" value="300">
-                                        <input type="number" id="textbox-history-size" min="60" max="1800" value="300">
+                                        <input type="range" id="slider-history-size" min="60" max="3600" value="600">
+                                        <input type="number" id="textbox-history-size" min="60" max="3600" value="600">
                                     </div>
                                 </div>
 
@@ -170,6 +170,24 @@
                                     <div class="input-row">
                                         <input type="range" id="slider-scale-down-stabilization-window" min="0" max="600" value="300">
                                         <input type="number" id="textbox-scale-down-stabilization-window" min="0" max="600" value="300">
+                                    </div>
+                                </div>
+
+                                <!-- POD startup time -->
+                                <div class="control-item">
+                                    <label for="pod-startup-time">POD Startup Time (seconds)</label>
+                                    <div class="input-row">
+                                        <input type="range" id="slider-pod-startup-time" min="0" max="180" value="20">
+                                        <input type="number" id="textbox-pod-startup-time" min="0" max="180" value="20">
+                                    </div>
+                                </div>
+
+                                <!-- POD stop time -->
+                                <div class="control-item">
+                                    <label for="pod-stop-time">POD Stop Time (seconds)</label>
+                                    <div class="input-row">
+                                        <input type="range" id="slider-pod-stop-time" min="0" max="60" value="10">
+                                        <input type="number" id="textbox-pod-stop-time" min="0" max="60" value="10">
                                     </div>
                                 </div>
 

@@ -54,11 +54,15 @@ func main() {
 	canvasUnmetLoadLegend := document.Call("getElementById", "canvas_unmet_cpu_load_legend")
 	canvasUnmetLoadCtx := canvasUnmetLoad.Call("getContext", "2d")
 
+	deploy := deployment{
+		desiredReplicas: 1,
+	}
+
 	// get canvas width and height
 	canvasWidth := canvasPods.Get("width").Int()
 	canvasHeight := canvasPods.Get("height").Int()
 
-	const historySize = 300
+	const historySize = 600
 
 	c := newChart(canvasPodsCtx, canvasPodsLoadCtx, canvasUnmetLoadCtx,
 		canvasPodsLegend, canvasPodsLoadLegend, canvasUnmetLoadLegend,
@@ -133,8 +137,6 @@ func main() {
 				// update number of pods slider to reflect HPA decision
 				controls.sliderNumberOfPods.slider.Set("value", newPodValue)
 				controls.sliderNumberOfPods.textBox.Set("value", newPodValue)
-
-				scaleDeploy(newPodValue) // send scale to deploy
 			} else {
 				newPodValue = oldPodValue // revert scale
 			}
@@ -143,11 +145,15 @@ func main() {
 			newPodValue = getSliderValueAsInt(controls.sliderNumberOfPods.slider)
 		}
 
+		deploy.scale(newPodValue)
+
+		deploy.update()
+
 		//
 		// evaluate per pod load
 		//
 
-		currentPods := float64(getSliderValueAsInt(controls.sliderNumberOfPods.slider))
+		currentPods := float64(deploy.getReplicas())
 		totalCPUUsage := float64(getSliderValueAsInt(controls.sliderCPUUsage.slider))
 		podCPULimit := float64(getSliderValueAsInt(controls.sliderPODCPULimit.slider))
 
@@ -162,7 +168,7 @@ func main() {
 		newUnmetLoad := totalCPUUsage - metLoad
 
 		// update chart data
-		updateChart(&c, newPodValue, int(newPodLoad), int(newUnmetLoad))
+		updateChart(&c, deploy.getReplicas(), int(newPodLoad), int(newUnmetLoad))
 
 		// redraw chart
 		drawCharts(canvasPodsCtx, canvasPodsLoadCtx, canvasUnmetLoadCtx, c)
@@ -176,10 +182,6 @@ func main() {
 	select {}
 }
 
-func scaleDeploy(replicas int) {
-	// FIXME WRITEME TODO
-}
-
 type podControls struct {
 	sliderCPUUsage                     sliderControl
 	sliderPODCPURequest                sliderControl
@@ -190,6 +192,8 @@ type podControls struct {
 	sliderNumberOfPods                 sliderControl
 	sliderHistorySize                  sliderControl
 	sliderScaleDownStabilizationWindow sliderControl
+	sliderPODStartupTime               sliderControl
+	sliderPODStopTime                  sliderControl
 }
 
 type sliderControl struct {
@@ -211,6 +215,8 @@ func addHTMLControls(document js.Value, callbackHistorySize func(string)) podCon
 	controls.sliderNumberOfPods = getSliderControl(document, "slider-number-of-pods", "textbox-number-of-pods")
 	controls.sliderHistorySize = getSliderControl(document, "slider-history-size", "textbox-history-size")
 	controls.sliderScaleDownStabilizationWindow = getSliderControl(document, "slider-scale-down-stabilization-window", "textbox-scale-down-stabilization-window")
+	controls.sliderPODStartupTime = getSliderControl(document, "slider-pod-startup-time", "textbox-pod-startup-time")
+	controls.sliderPODStopTime = getSliderControl(document, "slider-pod-stop-time", "textbox-pod-stop-time")
 
 	// Setup synchronization between sliders and textboxes
 	setupSliderSync(controls.sliderCPUUsage, nil)
@@ -222,6 +228,8 @@ func addHTMLControls(document js.Value, callbackHistorySize func(string)) podCon
 	setupSliderSync(controls.sliderNumberOfPods, nil)
 	setupSliderSync(controls.sliderHistorySize, callbackHistorySize)
 	setupSliderSync(controls.sliderScaleDownStabilizationWindow, nil)
+	setupSliderSync(controls.sliderPODStartupTime, nil)
+	setupSliderSync(controls.sliderPODStopTime, nil)
 
 	return controls
 }
@@ -309,24 +317,9 @@ func newChart(ctxPods, ctxPodsLoad, ctxUnmetLoad,
 	}
 
 	// fill pods with 1 (only for replicas)
-	for i := 0; i < historySize; i++ {
+	for i := range historySize {
 		c.pods.data[i] = 1
 	}
-
-	/*
-		// fill pods
-		for i := 0; i < historySize; i++ {
-			// for every point, shift left and add a new value
-
-			// loop to shift left
-			for j := 0; j < len(c.pods)-1; j++ {
-				c.pods[j] = c.pods[j+1]
-			}
-
-			// push a increasing value
-			c.pods[len(c.pods)-1] = i
-		}
-	*/
 
 	return c
 }

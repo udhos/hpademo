@@ -24,6 +24,8 @@ Online demo: https://udhos.github.io/hpademo/www/
   - HPA targe cpu utilization percentage.
   - Chart data history size (300s default).
   - Scale down stabilization window (300s default).
+  - POD startup time.
+  - POD stop time.
 - Non-customizable:
   - 10% HPA Scale Tolerance.
   - 15s HPA Scale Period.
