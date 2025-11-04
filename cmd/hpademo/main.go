@@ -145,6 +145,9 @@ func main() {
 			newPodValue = getSliderValueAsInt(controls.sliderNumberOfPods.slider)
 		}
 
+		deploy.startupTime = time.Second * time.Duration(getSliderValueAsInt(controls.sliderPODStartupTime.slider))
+		deploy.stopTime = time.Second * time.Duration(getSliderValueAsInt(controls.sliderPODStopTime.slider))
+
 		deploy.scale(newPodValue)
 
 		deploy.update()
