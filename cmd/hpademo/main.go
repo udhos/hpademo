@@ -359,7 +359,7 @@ func drawCharts(ctxReplicas, ctxPodLoad, ctxUnmetLoad js.Value, c chart) {
 
 	clearChart(ctxUnmetLoad, c)
 	{
-		lo, hi := findMinMax(c.podsLoad.data)
+		lo, hi := findMinMax(c.unmetLoad.data)
 		drawOneChart(ctxUnmetLoad, c.unmetLoad.legend, c, c.unmetLoad.data, "blue", drawLabels, 2, lo, hi)
 	}
 }
