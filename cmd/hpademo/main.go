@@ -17,6 +17,8 @@ type subchart struct {
 
 type chart struct {
 	pods         subchart
+	podsStarting subchart
+	podsStopping subchart
 	podsLoad     subchart
 	unmetLoad    subchart
 	canvasWidth  int
@@ -171,7 +173,9 @@ func main() {
 		newUnmetLoad := totalCPUUsage - metLoad
 
 		// update chart data
-		updateChart(&c, deploy.getReplicas(), int(newPodLoad), int(newUnmetLoad))
+		updateChart(&c,
+			deploy.getReplicas(), deploy.getStarting(), deploy.getStopping(),
+			int(newPodLoad), int(newUnmetLoad))
 
 		// redraw chart
 		drawCharts(canvasPodsCtx, canvasPodsLoadCtx, canvasUnmetLoadCtx, c)
@@ -264,19 +268,23 @@ func setupSliderSync(control sliderControl, callback func(string)) {
 	}))
 }
 
-func updateChart(c *chart, newPodValue, newPodLoad, newUnmetLoad int) {
+func updateChart(c *chart, newPodValue, starting, stopping, newPodLoad, newUnmetLoad int) {
 
 	last := len(c.pods.data) - 1
 
 	// shift left
 	for i := 0; i < last; i++ {
 		c.pods.data[i] = c.pods.data[i+1]
+		c.podsStarting.data[i] = c.podsStarting.data[i+1]
+		c.podsStopping.data[i] = c.podsStopping.data[i+1]
 		c.podsLoad.data[i] = c.podsLoad.data[i+1]
 		c.unmetLoad.data[i] = c.unmetLoad.data[i+1]
 	}
 
 	// add new value at the end
 	c.pods.data[last] = newPodValue
+	c.podsStarting.data[last] = starting
+	c.podsStopping.data[last] = stopping
 	c.podsLoad.data[last] = newPodLoad
 	c.unmetLoad.data[last] = newUnmetLoad
 }
@@ -288,6 +296,8 @@ func (c *chart) resizeHistory(newSize int) {
 	}
 
 	c.pods.data = resizeSliceInt(c.pods.data, newSize)
+	c.podsStarting.data = resizeSliceInt(c.podsStarting.data, newSize)
+	c.podsStopping.data = resizeSliceInt(c.podsStopping.data, newSize)
 	c.podsLoad.data = resizeSliceInt(c.podsLoad.data, newSize)
 	c.unmetLoad.data = resizeSliceInt(c.unmetLoad.data, newSize)
 }
@@ -313,6 +323,8 @@ func newChart(ctxPods, ctxPodsLoad, ctxUnmetLoad,
 	canvasWidth, canvasHeight, historySize int) chart {
 	c := chart{
 		pods:         subchart{ctx: ctxPods, legend: legendPods, data: make([]int, historySize)},
+		podsStarting: subchart{ctx: ctxPods, data: make([]int, historySize)},
+		podsStopping: subchart{ctx: ctxPods, data: make([]int, historySize)},
 		podsLoad:     subchart{ctx: ctxPodsLoad, legend: legendPodsLoad, data: make([]int, historySize)},
 		unmetLoad:    subchart{ctx: ctxUnmetLoad, legend: legendsUnmetLoad, data: make([]int, historySize)},
 		canvasWidth:  canvasWidth,
@@ -328,24 +340,31 @@ func newChart(ctxPods, ctxPodsLoad, ctxUnmetLoad,
 }
 
 func drawCharts(ctxReplicas, ctxPodLoad, ctxUnmetLoad js.Value, c chart) {
-	drawOneChart(ctxReplicas, c.pods.legend, c, c.pods.data, 1)
-	drawOneChart(ctxPodLoad, c.podsLoad.legend, c, c.podsLoad.data, 0)
-	drawOneChart(ctxUnmetLoad, c.unmetLoad.legend, c, c.unmetLoad.data, 0)
+	const drawLabels = true
+	const hideLabels = false
+
+	clearChart(ctxReplicas, c)
+	{
+		lo, hi := findMinMax(append(c.pods.data, append(c.podsStarting.data, c.podsStopping.data...)...))
+		drawOneChart(ctxReplicas, c.pods.legend, c, c.pods.data, "blue", drawLabels, 6, lo, hi)
+		drawOneChart(ctxReplicas, js.Null(), c, c.podsStarting.data, "green", hideLabels, 4, lo, hi)
+		drawOneChart(ctxReplicas, js.Null(), c, c.podsStopping.data, "red", hideLabels, 2, lo, hi)
+	}
+
+	clearChart(ctxPodLoad, c)
+	{
+		lo, hi := findMinMax(c.podsLoad.data)
+		drawOneChart(ctxPodLoad, c.podsLoad.legend, c, c.podsLoad.data, "blue", drawLabels, 2, lo, hi)
+	}
+
+	clearChart(ctxUnmetLoad, c)
+	{
+		lo, hi := findMinMax(c.podsLoad.data)
+		drawOneChart(ctxUnmetLoad, c.unmetLoad.legend, c, c.unmetLoad.data, "blue", drawLabels, 2, lo, hi)
+	}
 }
 
-func drawOneChart(ctx, legend js.Value, c chart, data []int, chartVerticalMinimum int) {
-	// clear canvas
-	ctx.Set("fillStyle", "white")
-	ctx.Call("fillRect", 0, 0, c.canvasWidth, c.canvasHeight)
-
-	// draw a border
-	/*
-		ctx.Set("strokeStyle", "black")
-		ctx.Set("lineWidth", 2)
-		ctx.Call("strokeRect", 0, 0, c.canvasWidth, c.canvasHeight)
-	*/
-
-	// find max pod value
+func findMinMax(data []int) (int, int) {
 	maxPods := 0
 	minPods := math.MaxInt // NaN
 	for _, v := range data {
@@ -356,6 +375,39 @@ func drawOneChart(ctx, legend js.Value, c chart, data []int, chartVerticalMinimu
 			minPods = v
 		}
 	}
+	return minPods, maxPods
+}
+
+func clearChart(ctx js.Value, c chart) {
+	ctx.Set("fillStyle", "white")
+	ctx.Call("fillRect", 0, 0, c.canvasWidth, c.canvasHeight)
+}
+
+func drawOneChart(ctx, legend js.Value, c chart, data []int,
+	color string, drawLabels bool,
+	width,
+	minPods, maxPods int) {
+
+	// draw a border
+	/*
+		ctx.Set("strokeStyle", "black")
+		ctx.Set("lineWidth", 2)
+		ctx.Call("strokeRect", 0, 0, c.canvasWidth, c.canvasHeight)
+	*/
+
+	// find max pod value
+	/*
+		maxPods := 0
+		minPods := math.MaxInt // NaN
+		for _, v := range data {
+			if v > maxPods {
+				maxPods = v
+			}
+			if v < minPods {
+				minPods = v
+			}
+		}
+	*/
 
 	// pod space x ranges from 0 to len(c.pods)
 	// pod space y ranges from 0 to maxPods
@@ -363,14 +415,16 @@ func drawOneChart(ctx, legend js.Value, c chart, data []int, chartVerticalMinimu
 	// canvas space y ranges from 0 to c.canvasHeight
 
 	// draw line
-	ctx.Set("strokeStyle", "blue")
-	ctx.Set("lineWidth", 2)
+	ctx.Set("strokeStyle", color)
+	ctx.Set("lineWidth", width)
 	ctx.Call("beginPath")
 
-	maxPodsShifted := maxPods - chartVerticalMinimum
+	/*
+		maxPodsShifted := maxPods - chartVerticalMinimum
+	*/
 	// avoid division by zero
-	if maxPodsShifted <= 0 {
-		maxPodsShifted = 1
+	if maxPods <= 0 {
+		maxPods = 1
 	}
 
 	// now draw considering chartVerticalMinimum
@@ -378,7 +432,8 @@ func drawOneChart(ctx, legend js.Value, c chart, data []int, chartVerticalMinimu
 	for i, v := range data {
 		// map pod space to canvas space
 		x := i * c.canvasWidth / len(data)
-		y := c.canvasHeight - ((v - chartVerticalMinimum) * c.canvasHeight / maxPodsShifted) // invert y axis
+		//y := c.canvasHeight - ((v - chartVerticalMinimum) * c.canvasHeight / maxPodsShifted) // invert y axis
+		y := c.canvasHeight - (v * c.canvasHeight / maxPods) // invert y axis
 
 		if i == 0 {
 			ctx.Call("moveTo", x, y)
@@ -388,42 +443,46 @@ func drawOneChart(ctx, legend js.Value, c chart, data []int, chartVerticalMinimu
 	}
 	ctx.Call("stroke")
 
-	// Draw a label for max replicas at top-left corner
-	labelText := fmt.Sprintf("Max: %d", maxPods)
-	ctx.Set("font", "16px Arial")
-	ctx.Set("fillStyle", "black")
-	ctx.Call("fillText", labelText, 10, 20)
+	if drawLabels {
+		// Draw a label for max replicas at top-left corner
+		labelText := fmt.Sprintf("Max: %d", maxPods)
+		ctx.Set("font", "16px Arial")
+		ctx.Set("fillStyle", "black")
+		ctx.Call("fillText", labelText, 10, 20)
 
-	// Draw a label for latest replicas count at right size
-	// But vertically aligned with the last point
-	latestReplicas := data[len(data)-1]
+		// Draw a label for latest replicas count at right size
+		// But vertically aligned with the last point
+		latestReplicas := data[len(data)-1]
 
-	labelText = fmt.Sprintf("Cur: %d", latestReplicas)
-	textMetrics := ctx.Call("measureText", labelText)
-	textWidth := textMetrics.Get("width").Float()
+		labelText = fmt.Sprintf("Cur: %d", latestReplicas)
+		textMetrics := ctx.Call("measureText", labelText)
+		textWidth := textMetrics.Get("width").Float()
 
-	x := c.canvasWidth - int(textWidth) - 5
-	y := c.canvasHeight - ((latestReplicas - chartVerticalMinimum) * c.canvasHeight / maxPodsShifted)
-	// Move y slight up to avoid overlapping with the line
-	y -= 10
-	// Adjust y to avoid drawing outside canvas
-	if y < 20 {
-		y = 20
+		x := c.canvasWidth - int(textWidth) - 5
+		y := c.canvasHeight - (latestReplicas * c.canvasHeight / maxPods)
+		// Move y slight up to avoid overlapping with the line
+		y -= 10
+		// Adjust y to avoid drawing outside canvas
+		if y < 20 {
+			y = 20
+		}
+		if y > c.canvasHeight-10 {
+			y = c.canvasHeight - 10
+		}
+
+		ctx.Call("fillText", labelText, x, y)
+
+		// Draw label with min, max, current replicas into legend element
+		if !legend.IsNull() {
+			var minPodsStr string
+			if minPods == math.MaxInt {
+				minPodsStr = "N/A"
+			} else {
+				minPodsStr = fmt.Sprintf("%d", minPods)
+			}
+			legendHTML := fmt.Sprintf("Min:%s Max:%d Current:%d",
+				minPodsStr, maxPods, latestReplicas)
+			legend.Set("innerHTML", legendHTML)
+		}
 	}
-	if y > c.canvasHeight-10 {
-		y = c.canvasHeight - 10
-	}
-
-	ctx.Call("fillText", labelText, x, y)
-
-	// Draw label with min, max, current replicas into legend element
-	var minPodsStr string
-	if minPods == math.MaxInt {
-		minPodsStr = "N/A"
-	} else {
-		minPodsStr = fmt.Sprintf("%d", minPods)
-	}
-	legendHTML := fmt.Sprintf("Min:%s Max:%d Current:%d",
-		minPodsStr, maxPods, latestReplicas)
-	legend.Set("innerHTML", legendHTML)
 }

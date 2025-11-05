@@ -1,6 +1,8 @@
 package main
 
-import "time"
+import (
+	"time"
+)
 
 type deployment struct {
 	podList         []pod
@@ -26,14 +28,47 @@ func (d *deployment) getReplicas() int {
 	return len(d.podList)
 }
 
+func (d *deployment) countStatus(status podStatus) int {
+	var count int
+	for _, p := range d.podList {
+		if p.status == status {
+			count++
+		}
+	}
+	return count
+}
+
+func (d *deployment) getRunning() int {
+	return d.countStatus(podStatusRunning)
+}
+
+func (d *deployment) getStarting() int {
+	return d.countStatus(podStatusStarting)
+}
+
+func (d *deployment) getStopping() int {
+	return d.countStatus(podStatusTerminating)
+}
+
 func (d *deployment) scale(replicas int) {
 	d.desiredReplicas = replicas
 }
+
+/*
+func (d *deployment) log(label string) {
+	fmt.Printf("%s: pods:%d run:%d start:%d stop:%d\n",
+		label,
+		d.getReplicas(), d.getRunning(), d.getStarting(),
+		d.getStopping())
+}
+*/
 
 func (d *deployment) update() {
 	var newPodList []pod
 
 	var running int
+
+	//d.log("before")
 
 	for _, p := range d.podList {
 		switch p.status {
@@ -41,14 +76,17 @@ func (d *deployment) update() {
 			if elap := time.Since(p.lastStatusChange); elap < d.stopTime {
 				newPodList = append(newPodList, p) // preserve pod
 			}
+			//fmt.Println("preserved stopping")
 		case podStatusStarting:
 			if elap := time.Since(p.lastStatusChange); elap > d.startupTime {
 				// promote to running
 				p.status = podStatusRunning
 				p.lastStatusChange = time.Now()
+				//fmt.Println("promoted to running")
 			}
 			newPodList = append(newPodList, p)
 		case podStatusRunning:
+			newPodList = append(newPodList, p)
 			running++
 		}
 	}
@@ -65,6 +103,7 @@ func (d *deployment) update() {
 			p.lastStatusChange = time.Now()
 			newPodList[i] = p
 			removePods--
+			//fmt.Println("promoted to terminating")
 		}
 	}
 
@@ -76,8 +115,11 @@ func (d *deployment) update() {
 				status:           podStatusStarting,
 				lastStatusChange: time.Now(),
 			})
+			//fmt.Println("started")
 		}
 	}
 
 	d.podList = newPodList
+
+	//d.log("after")
 }
