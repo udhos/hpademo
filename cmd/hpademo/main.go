@@ -35,8 +35,10 @@ func getSliderValueAsInt(slider js.Value) int {
 func main() {
 	document := js.Global().Get("document")
 
-	// add title with version using JavaScript function
-	js.Global().Call("renderTitleVersion", version)
+	// add title with version
+	titleVersion := fmt.Sprintf("🚀 HPA Demo v%s", version)
+	titleElement := document.Call("getElementById", "title")
+	titleElement.Set("innerHTML", titleVersion)
 
 	// find canvasPods element
 	canvasPods := document.Call("getElementById", "canvas_pods")
@@ -277,7 +279,7 @@ func drawCharts(ctxReplicas, ctxPodLoad, ctxUnmetLoad js.Value, c chart) {
 	drawOneChartLine(ctxUnmetLoad, c.unmetLoad.legendID, c, c.unmetLoad.data, 0)
 }
 
-func drawOneChartLine(ctx js.Value, legendID string, c chart, data []int, chartVerticalMinimum int) {
+func drawOneChartLine(ctx, legend js.Value, c chart, data []int, chartVerticalMinimum int) {
 	// clear canvas
 	ctx.Set("fillStyle", "white")
 	ctx.Call("fillRect", 0, 0, c.canvasWidth, c.canvasHeight)
@@ -355,12 +357,14 @@ func drawOneChartLine(ctx js.Value, legendID string, c chart, data []int, chartV
 	labelText = fmt.Sprintf("Cur: %d", latestReplicas)
 	ctx.Call("fillText", labelText, x, y)
 
-	// Update legend using JavaScript function
+	// Draw label with min, max, current replicas into legend element
 	var minPodsStr string
 	if minPods == math.MaxInt {
 		minPodsStr = "N/A"
 	} else {
 		minPodsStr = fmt.Sprintf("%d", minPods)
 	}
-	js.Global().Call("updateLegend", legendID, minPodsStr, maxPods, latestReplicas)
+	legendHTML := fmt.Sprintf("Min:%s Max:%d Current:%d",
+		minPodsStr, maxPods, latestReplicas)
+	legend.Set("innerHTML", legendHTML)
 }
