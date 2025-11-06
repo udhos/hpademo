@@ -443,6 +443,10 @@ func drawOneChart(ctx, legend js.Value, c chart, data []int,
 	}
 	ctx.Call("stroke")
 
+	legend_min := legend.Call("getElementById", "min_legend")
+	legend_max := legend.Call("getElementById", "max_legend")
+	legend_curr := legend.Call("getElementById", "current_legend")
+
 	if drawLabels {
 		// Draw a label for max replicas at top-left corner
 		labelText := fmt.Sprintf("Max: %d", maxPods)
@@ -480,9 +484,14 @@ func drawOneChart(ctx, legend js.Value, c chart, data []int,
 			} else {
 				minPodsStr = fmt.Sprintf("%d", minPods)
 			}
-			legendHTML := fmt.Sprintf("Min:%s Max:%d Current:%d",
-				minPodsStr, maxPods, latestReplicas)
-			legend.Set("innerHTML", legendHTML)
+
+			legend_min.Set("innerHTML", minPodsStr)
+			legend_max.Set("innerHTML", fmt.Sprintf("%d", maxPods))
+			legend_curr.Set("innerHTML", fmt.Sprintf("%d", latestReplicas))
+			//
+			// legendHTML := fmt.Sprintf("Min:%s Max:%d Current:%d",
+			// 	minPodsStr, maxPods, latestReplicas)
+			// legend.Set("innerHTML", legendHTML)
 		}
 	}
 }
