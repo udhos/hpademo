@@ -480,9 +480,11 @@ func drawOneChart(ctx, legend js.Value, c chart, data []int,
 			} else {
 				minPodsStr = fmt.Sprintf("%d", minPods)
 			}
-			legendHTML := fmt.Sprintf("Min:%s Max:%d Current:%d",
-				minPodsStr, maxPods, latestReplicas)
-			legend.Set("innerHTML", legendHTML)
+
+			// Update specific elements instead of replacing innerHTML
+			legend.Call("querySelector", ".legend-min").Set("innerText", minPodsStr)
+			legend.Call("querySelector", ".legend-max").Set("innerText", fmt.Sprintf("%d", maxPods))
+			legend.Call("querySelector", ".legend-current").Set("innerText", fmt.Sprintf("%d", latestReplicas))
 		}
 	}
 }
