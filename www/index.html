@@ -23,7 +23,8 @@
             <div class="text-center mb-8">
                 <h1 id="title" class="text-5xl font-bold text-purple-600 mb-4">🚀 HPA Demo</h1>
                 <p>
-                    <span class="font-bold">hpademo</span> is a simple demo for Kubernetes Horizontal Pod Autoscaler (HPA), written in Go and compiled to WebAssembly.
+                    <span class="font-bold">hpademo</span> is a simple demo for Kubernetes Horizontal Pod Autoscaler
+                    (HPA), written in Go and compiled to WebAssembly.
                 </p>
             </div>
 
@@ -56,21 +57,66 @@
                     <div class="canvas-panel border-2 border-purple-500 rounded-xl shadow-lg p-2">
                         <canvas id="canvas_pods" width="1000" height="200" class="w-full rounded-lg"></canvas>
                     </div>
-                    <center><div id="canvas_pods_legend"></div></center>
+                    <center>
+                        <div id="canvas_pods_legend" class="stats-container">
+                            <div class="stat-card">
+                                <span class="stat-label">Min</span>
+                                <span class="stat-value legend-min">N/A</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-label">Max</span>
+                                <span class="stat-value legend-max">0</span>
+                            </div>
+                            <div class="stat-card highlight">
+                                <span class="stat-label">Current</span>
+                                <span class="stat-value legend-current">0</span>
+                            </div>
+                        </div>
+                    </center>
 
                     <!-- Pod CPU Usage Chart -->
                     <div class="text-lg font-bold text-gray-700 mb-4 mt-6">Per-Pod CPU Usage (mCores)</div>
                     <div class="canvas-panel border-2 border-purple-500 rounded-xl shadow-lg p-2">
                         <canvas id="canvas_pod_cpu_usage" width="1000" height="200" class="w-full rounded-lg"></canvas>
                     </div>
-                    <center><div id="canvas_pod_cpu_usage_legend"></div></center>
+                    <center>
+                        <div id="canvas_pod_cpu_usage_legend" class="stats-container">
+                            <div class="stat-card">
+                                <span class="stat-label">Min</span>
+                                <span class="stat-value legend-min">N/A</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-label">Max</span>
+                                <span class="stat-value legend-max">0</span>
+                            </div>
+                            <div class="stat-card highlight">
+                                <span class="stat-label">Current</span>
+                                <span class="stat-value legend-current">0</span>
+                            </div>
+                        </div>
+                    </center>
 
                     <!-- Unmet CPU Load Chart -->
                     <div class="text-lg font-bold text-gray-700 mb-4 mt-6">Total Unmet CPU Load (mCores)</div>
                     <div class="canvas-panel border-2 border-purple-500 rounded-xl shadow-lg p-2">
                         <canvas id="canvas_unmet_cpu_load" width="1000" height="200" class="w-full rounded-lg"></canvas>
                     </div>
-                    <center><div id="canvas_unmet_cpu_load_legend"></div></center>
+                    <center>
+                        <div id="canvas_unmet_cpu_load_legend" class="stats-container">
+                            <div class="stat-card">
+                                <span class="stat-label">Min</span>
+                                <span class="stat-value legend-min">N/A</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-label">Max</span>
+                                <span class="stat-value legend-max">0</span>
+                            </div>
+                            <div class="stat-card highlight">
+                                <span class="stat-label">Current</span>
+                                <span class="stat-value legend-current">0</span>
+                            </div>
+                        </div>
+                    </center>
                 </div>
 
                 <!-- Controls Area -->
@@ -80,7 +126,7 @@
                             <!-- Input Section -->
                             <div class="input-section">
                                 <h4 class="section-title">⚡ System Load Simulation</h4>
-                                
+
                                 <!-- Total CPU Usage -->
                                 <div class="control-item">
                                     <label for="slider-cpu-usage">Total CPU Usage (mCores)</label>
@@ -99,8 +145,10 @@
                                 <div class="control-item">
                                     <label for="slider-pod-cpu-request">POD CPU Request (mCores)</label>
                                     <div class="input-row">
-                                        <input type="range" id="slider-pod-cpu-request" min="10" max="10000" value="200">
-                                        <input type="number" id="textbox-pod-cpu-request" min="10" max="10000" value="200">
+                                        <input type="range" id="slider-pod-cpu-request" min="10" max="10000"
+                                            value="200">
+                                        <input type="number" id="textbox-pod-cpu-request" min="10" max="10000"
+                                            value="200">
                                     </div>
                                 </div>
 
@@ -109,7 +157,8 @@
                                     <label for="slider-pod-cpu-limit">POD CPU Limit (mCores)</label>
                                     <div class="input-row">
                                         <input type="range" id="slider-pod-cpu-limit" min="10" max="10000" value="600">
-                                        <input type="number" id="textbox-pod-cpu-limit" min="10" max="10000" value="600">
+                                        <input type="number" id="textbox-pod-cpu-limit" min="10" max="10000"
+                                            value="600">
                                     </div>
                                 </div>
 
@@ -127,7 +176,8 @@
                                     <label for="slider-hpa-max-replicas">HPA Max Replicas</label>
                                     <div class="input-row">
                                         <input type="range" id="slider-hpa-max-replicas" min="1" max="1000" value="10">
-                                        <input type="number" id="textbox-hpa-max-replicas" min="1" max="1000" value="10">
+                                        <input type="number" id="textbox-hpa-max-replicas" min="1" max="1000"
+                                            value="10">
                                     </div>
                                 </div>
 
@@ -166,10 +216,13 @@
 
                                 <!-- Scale Down Stabilization Window -->
                                 <div class="control-item">
-                                    <label for="scale-down-stabilization-window">HPA Scale Down Stabilization Window (seconds)</label>
+                                    <label for="scale-down-stabilization-window">HPA Scale Down Stabilization Window
+                                        (seconds)</label>
                                     <div class="input-row">
-                                        <input type="range" id="slider-scale-down-stabilization-window" min="0" max="600" value="300">
-                                        <input type="number" id="textbox-scale-down-stabilization-window" min="0" max="600" value="300">
+                                        <input type="range" id="slider-scale-down-stabilization-window" min="0"
+                                            max="600" value="300">
+                                        <input type="number" id="textbox-scale-down-stabilization-window" min="0"
+                                            max="600" value="300">
                                     </div>
                                 </div>
 
